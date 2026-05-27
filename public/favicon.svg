@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" fill="none" viewBox="0 0 512 512">
+  <defs>
+    <!-- Thermal gradient: cool purples through hot yellows -->
+    <linearGradient id="thermal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a0533"/>
+      <stop offset="20%" stop-color="#3b0fa8"/>
+      <stop offset="40%" stop-color="#7e14ff"/>
+      <stop offset="55%" stop-color="#e040a0"/>
+      <stop offset="70%" stop-color="#ff6040"/>
+      <stop offset="85%" stop-color="#ffb020"/>
+      <stop offset="100%" stop-color="#ffe840"/>
+    </linearGradient>
+    <!-- Background subtle radial -->
+    <radialGradient id="bgGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#1e0a3c"/>
+      <stop offset="100%" stop-color="#0a0a14"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Rounded square background -->
+  <rect x="0" y="0" width="512" height="512" rx="112" fill="url(#bgGlow)"/>
+
+  <!-- Outer ring / lens bezel -->
+  <circle cx="256" cy="256" r="180" fill="none" stroke="#2a1550" stroke-width="8"/>
+  <circle cx="256" cy="256" r="168" fill="none" stroke="#1a0d35" stroke-width="3"/>
+
+  <!-- Iris aperture blades - 7 blades forming thermal gradient -->
+  <!-- Blade 1 (top-right) -->
+  <polygon points="256,176 370,200 400,310 330,370 256,336" fill="#7e14ff" opacity="0.85"/>
+  <!-- Blade 2 (right) -->
+  <polygon points="256,176 400,310 370,420 280,440 256,336" fill="#b830d0" opacity="0.85"/>
+  <!-- Blade 3 (bottom-right) -->
+  <polygon points="256,336 370,420 280,440 180,400 256,336" fill="#e040a0" opacity="0.85"/>
+  <!-- Blade 4 (bottom) -->
+  <polygon points="256,336 280,440 180,400 140,300 150,256" fill="#ff5050" opacity="0.85"/>
+  <!-- Blade 5 (bottom-left) -->
+  <polygon points="256,336 180,400 140,300 120,200 200,196" fill="#ff8030" opacity="0.85"/>
+  <!-- Blade 6 (left) -->
+  <polygon points="256,336 150,256 120,200 200,196 256,176" fill="#ffb020" opacity="0.85"/>
+  <!-- Blade 7 (top-left) -->
+  <polygon points="256,176 200,196 120,200 180,130 256,176" fill="#ffe840" opacity="0.85"/>
+
+  <!-- Center aperture opening -->
+  <polygon points="256,196 330,230 310,310 256,316 210,300 200,240" fill="#0a0a14" opacity="0.9"/>
+
+  <!-- Crosshair lines (measurement motif) -->
+  <line x1="256" y1="180" x2="256" y2="222" stroke="#ffe840" stroke-width="3" opacity="0.7"/>
+  <line x1="256" y1="290" x2="256" y2="332" stroke="#ffe840" stroke-width="3" opacity="0.7"/>
+  <line x1="160" y1="256" x2="195" y2="256" stroke="#ffe840" stroke-width="3" opacity="0.7"/>
+  <line x1="317" y1="256" x2="352" y2="256" stroke="#ffe840" stroke-width="3" opacity="0.7"/>
+
+  <!-- Center dot -->
+  <circle cx="256" cy="256" r="6" fill="#ffe840" opacity="0.9"/>
+
+  <!-- Outer crosshair ticks -->
+  <circle cx="256" cy="256" r="150" fill="none" stroke="#7e14ff" stroke-width="1.5" stroke-dasharray="8 60" opacity="0.3"/>
+
+  <!-- Temperature graduation marks around edge -->
+  <g opacity="0.25">
+    <line x1="256" y1="96" x2="256" y2="108" stroke="#3b0fa8" stroke-width="2"/>
+    <line x1="256" y1="404" x2="256" y2="416" stroke="#ffe840" stroke-width="2"/>
+    <line x1="96" y1="256" x2="108" y2="256" stroke="#3b0fa8" stroke-width="2"/>
+    <line x1="404" y1="256" x2="416" y2="256" stroke="#ffe840" stroke-width="2"/>
+  </g>
+</svg>

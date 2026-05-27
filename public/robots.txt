@@ -1,0 +1,9 @@
+# https://thermview.app
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://thermview.app/sitemap.xml
+
+# Host
+Host: https://thermview.app

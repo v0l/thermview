@@ -1,0 +1,2 @@
+# Redirect www to apex
+https://www.thermview.app/* https://thermview.app/:splat 301!

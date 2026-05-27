@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+
+    <!-- Primary Meta Tags -->
+    <title>ThermView — Free Web-Based Thermal Imaging Analysis Tool</title>
+    <meta name="title" content="ThermView — Free Web-Based Thermal Imaging Analysis Tool" />
+    <meta name="description" content="ThermView is a free, open-source thermal image analysis tool that runs in your browser. Parse Infiray IRG, Hikmicro JPEG, and DJI R-JPEG files, apply color palettes, measure temperatures, and export PNGs — no install required." />
+    <meta name="keywords" content="thermal imaging, thermal image viewer, infrared camera, radiometric analysis, Infiray IRG parser, Hikmicro JPEG, DJI thermal, free thermal software, web thermal viewer, temperature measurement, color palette, thermography" />
+    <meta name="author" content="ThermView" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://thermview.app" />
+
+    <!-- Open Graph / Facebook / Discord / LinkedIn -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://thermview.app" />
+    <meta property="og:title" content="ThermView — Free Web-Based Thermal Imaging Analysis Tool" />
+    <meta property="og:description" content="Parse, view, and analyze radiometric thermal images directly in your browser. Supports Infiray IRG, Hikmicro JPEG, and DJI R-JPEG formats. No install, no vendor lock-in, fully open source." />
+    <meta property="og:image" content="https://thermview.app/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="ThermView thermal imaging analysis interface showing a thermal image with temperature color palette and measurement tools" />
+    <meta property="og:site_name" content="ThermView" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter / X Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://thermview.app" />
+    <meta name="twitter:title" content="ThermView — Free Web-Based Thermal Imaging Analysis Tool" />
+    <meta name="twitter:description" content="Parse, view, and analyze radiometric thermal images directly in your browser. Supports Infiray IRG, Hikmicro JPEG, and DJI R-JPEG formats. No install, no vendor lock-in, fully open source." />
+    <meta name="twitter:image" content="https://thermview.app/og-image.png" />
+    <meta name="twitter:image:alt" content="ThermView thermal imaging analysis interface showing a thermal image with temperature color palette and measurement tools" />
+
+    <!-- PWA / Web App -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#0f0f14" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="ThermView" />
+
+    <!-- Icons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Structured Data: SoftwareApplication (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "ThermView",
+      "applicationCategory": "MultimediaApplication",
+      "operatingSystem": "Any",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "description": "ThermView is a free, open-source web-based thermal imaging analysis tool. Parse Infiray IRG, Hikmicro JPEG, and DJI R-JPEG radiometric files, apply color palettes, take spot measurements, and export thermal images — all in your browser.",
+      "url": "https://thermview.app",
+      "browserRequirements": "Requires JavaScript. Works in Chrome, Firefox, Safari, and Edge.",
+      "featureList": [
+        "Multi-format radiometric parsing (IRG, Hikmicro JPEG, DJI R-JPEG)",
+        "9 color palettes with palette inversion",
+        "3 scale modes (Linear, Logarithmic, Histogram Equalization)",
+        "Interactive temperature range bar",
+        "Spot measurements with min/max markers",
+        "Unit conversion (°C / °F)",
+        "PNG export",
+        "Dark theme UI",
+        "Drag & drop file loading"
+      ]
+    }
+    </script>
+
+    <!-- Structured Data: WebSite -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "ThermView",
+      "url": "https://thermview.app",
+      "description": "Free, open-source web-based thermal imaging analysis tool. No install, no vendor lock-in.",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://thermview.app/?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+  </head>
+  <body>
+    <!-- No-JS / Crawler Landing Content -->
+    <noscript>
+      <div style="max-width:720px;margin:80px auto;padding:0 24px;font-family:system-ui,-apple-system,sans-serif;color:#e0e0e0;background:#12121a;line-height:1.7">
+        <h1 style="font-size:2.2rem;margin-bottom:0.3em;color:#fff">🌡️ ThermView</h1>
+        <p style="font-size:1.15rem;color:#a0a0b8;margin-bottom:1.5em">
+          <strong>Free, open-source thermal imaging analysis — in your browser.</strong>
+        </p>
+        <p>
+          ThermView is a web-based tool for thermographers, inspectors, and engineers to view and analyze radiometric thermal images without installing any software.
+        </p>
+        <h2 style="font-size:1.3rem;margin-top:2em;color:#fff">Supported File Formats</h2>
+        <ul style="padding-left:1.2em">
+          <li><strong>Infiray IRG</strong> — C200, C210, P200, Autel Evo II Dual</li>
+          <li><strong>Hikmicro JPEG</strong> — Pocket2, SP60 (radiometric JPEG)</li>
+          <li><strong>DJI R-JPEG</strong> — Mavic 2 Enterprise Advanced</li>
+        </ul>
+        <h2 style="font-size:1.3rem;margin-top:2em;color:#fff">Features</h2>
+        <ul style="padding-left:1.2em">
+          <li>9 color palettes (Inferno, Iron, Jet, Hot, Lava, Plasma, Rainbow, Arctic, Grayscale)</li>
+          <li>Linear, logarithmic, and histogram equalization scale modes</li>
+          <li>Interactive temperature range bar with draggable handles</li>
+          <li>Click-to-place spot measurements with crosshairs</li>
+          <li>Min/max hotspot detection with on-canvas markers</li>
+          <li>°C / °F unit toggle</li>
+          <li>PNG export</li>
+          <li>Emissivity, air temp, and other metadata display</li>
+          <li>Dark theme purpose-built for thermal imaging workflows</li>
+          <li>Drag &amp; drop file loading — no accounts, no uploads</li>
+        </ul>
+        <h2 style="font-size:1.3rem;margin-top:2em;color:#fff">Why ThermView?</h2>
+        <p>
+          Commercial thermography software is Windows-only, expensive, and locked to specific camera brands. FLIR Thermal Studio Pro costs hundreds per year. Fluke Connect is tied to Fluke hardware. Testo IRSoft is PC-only.
+        </p>
+        <p>
+          ThermView runs in any browser, on any OS. It's the <strong>VS Code of thermal imaging</strong>: fast, cross-platform, extensible, and free.
+        </p>
+        <p style="margin-top:2.5em;padding:16px 20px;background:#1a1a28;border-radius:8px;border:1px solid #2a2a40">
+          ⚡ <strong>Enable JavaScript</strong> to load the interactive thermal image viewer, or use a modern browser (Chrome, Firefox, Safari, Edge).
+        </p>
+        <p style="margin-top:2.5em;font-size:0.85rem;color:#5a5a78">
+          <a href="https://github.com/user/thermview" style="color:#6a8aff">GitHub</a> · MIT License · Open Source
+        </p>
+      </div>
+    </noscript>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,143 @@
+@import "tailwindcss";
+
+@theme {
+  --color-thermal-bg: #0a0a0f;
+  --color-thermal-surface: #13141f;
+  --color-thermal-card: #1a1b2e;
+  --color-thermal-border: #2a2b3d;
+  --color-thermal-muted: #6b6d84;
+  --color-thermal-text: #c8cad6;
+  --color-thermal-heading: #e8e9f0;
+  --color-thermal-hot: #ff4d2e;
+  --color-thermal-warm: #f59e0b;
+  --color-thermal-cool: #3b82f6;
+  --color-thermal-accent: #f97316;
+  --color-thermal-cold: #06b6d4;
+  --font-display: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  --font-body: "Inter Variable", "Inter", system-ui, sans-serif;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-thermal-border);
+  }
+  body {
+    background: #0a0a0f;
+    color: var(--color-thermal-text);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Select component backgrounds */
+[data-slot="select-trigger"] {
+  background: var(--color-thermal-surface) !important;
+  border-color: var(--color-thermal-border) !important;
+  color: var(--color-thermal-text) !important;
+}
+
+[data-slot="select-content"] {
+  background: var(--color-thermal-card) !important;
+  border: 1px solid var(--color-thermal-border) !important;
+}
+
+[data-slot="select-item"]:hover {
+  background: color-mix(in srgb, var(--color-thermal-accent) 15%, transparent) !important;
+}
+
+[data-slot="select-item"][data-highlighted] {
+  background: color-mix(in srgb, var(--color-thermal-accent) 20%, transparent) !important;
+}
+
+/* Input / file button */
+input[type="file"] {
+  color: var(--color-thermal-text);
+}
+
+/* Card overrides */
+[data-slot="card"] {
+  background: var(--color-thermal-card) !important;
+  border-color: var(--color-thermal-border) !important;
+}
+
+[data-slot="card-header"] {
+  border-bottom: 1px solid var(--color-thermal-border);
+  padding-bottom: 1rem;
+}
+
+[data-slot="card-title"] {
+  font-family: var(--font-display);
+  color: var(--color-thermal-heading);
+  font-size: 1.125rem;
+  letter-spacing: -0.02em;
+}
+
+[data-slot="card-description"] {
+  color: var(--color-thermal-muted);
+}
+
+/* Button overrides */
+[data-slot="button"] {
+  font-family: var(--font-display);
+  font-size: 0.8125rem;
+  letter-spacing: 0.02em;
+}
+
+/* Thermal image styling */
+.thermal-image {
+  border-color: var(--color-thermal-border);
+  box-shadow: 0 0 40px color-mix(in srgb, var(--color-thermal-hot) 10%, transparent),
+              0 0 80px color-mix(in srgb, var(--color-thermal-warm) 5%, transparent);
+}
+
+/* Noise texture overlay for atmosphere */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 256px 256px;
+  pointer-events: none;
+}
+
+/* Label styling */
+[data-slot="label"] {
+  color: var(--color-thermal-muted);
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Grid lines on the thermal image container */
+.thermal-container {
+  position: relative;
+}
+
+.thermal-container::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(0deg, transparent, transparent 2px, color-mix(in srgb, var(--color-thermal-border) 30%, transparent) 2px, color-mix(in srgb, var(--color-thermal-border) 30%, transparent) 3px),
+    repeating-linear-gradient(90deg, transparent, transparent 2px, color-mix(in srgb, var(--color-thermal-border) 30%, transparent) 2px, color-mix(in srgb, var(--color-thermal-border) 30%, transparent) 3px);
+  border-radius: 0.5rem;
+}
+
+/* Placeholder card styling */
+.placeholder-card {
+  background: color-mix(in srgb, var(--color-thermal-surface) 60%, transparent) !important;
+  border: 2px dashed var(--color-thermal-border) !important;
+}
+
+/* Stat value text */
+.stat-value {
+  font-family: var(--font-display);
+  color: var(--color-thermal-heading);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}

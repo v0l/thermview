@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IRG Parser Test</title>
+</head>
+<body>
+    <h1>IRG Parser Test</h1>
+    <input type="file" id="fileInput" accept=".irg">
+    <div id="output"></div>
+    
+    <script type="module">
+        function parseIRG(buffer) {
+            const view = new DataView(buffer);
+            
+            // Parse header fields (all little-endian)
+            const height = view.getUint16(0x08, true);
+            const width = view.getUint16(0x0A, true);
+            
+            const emiss = view.getUint16(0x1E, true);
+            const emissivity = emiss / 10000;
+            
+            const refTempC = view.getUint16(0x22, true) / 1000;
+            const refTemp = refTempC + 273.15;
+            
+            const airTempC = view.getUint16(0x26, true) / 1000;
+            const airTemp = airTempC + 273.15;
+            
+            const distance = view.getUint16(0x24, true) / 1000;
+            const atmTrans = view.getUint16(0x2A, true) / 10000;
+            const pseudoCol = view.getInt32(0x44, true);
+            const tempUnit = view.getInt32(0x48, true);
+            const humidity = view.getUint8(0x1D);
+            
+            const param = {
+                width,
+                height,
+                emissivity,
+                airTemp,
+                distance,
+                humidity,
+                refTemp,
+                atmTrans,
+                pseudoCol,
+                tempUnit,
+            };
+            
+            const imageSize = width * height;
+            const imageData = new Uint8Array(buffer, 0x80, imageSize);
+            const tempOffset = 0x80 + imageSize;
+            const tempData = new Uint16Array(buffer, tempOffset, imageSize);
+            
+            return { param, imageData, tempData };
+        }
+        
+        document.getElementById('fileInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const arrayBuffer = await file.arrayBuffer();
+            try {
+                const result = parseIRG(arrayBuffer);
+                
+                // Calculate min/max temps
+                let minTemp = Infinity;
+                let maxTemp = -Infinity;
+                for (let i = 0; i < result.tempData.length; i++) {
+                    const tempC = (result.tempData[i] / 10) - 273.15;
+                    if (tempC < minTemp) minTemp = tempC;
+                    if (tempC > maxTemp) maxTemp = tempC;
+                }
+                
+                const output = document.getElementById('output');
+                output.innerHTML = `
+                    <h2>Parsing Results</h2>
+                    <p><strong>Resolution:</strong> ${result.param.width} × ${result.param.height}</p>
+                    <p><strong>Emissivity:</strong> ${result.param.emissivity.toFixed(3)}</p>
+                    <p><strong>Air Temp:</strong> ${(result.param.airTemp - 273.15).toFixed(1)}°C</p>
+                    <p><strong>Ref Temp:</strong> ${(result.param.refTemp - 273.15).toFixed(1)}°C</p>
+                    <p><strong>Distance:</strong> ${result.param.distance.toFixed(1)}m</p>
+                    <p><strong>Atm Trans:</strong> ${result.param.atmTrans.toFixed(3)}</p>
+                    <p><strong>Min Temp:</strong> ${minTemp.toFixed(1)}°C</p>
+                    <p><strong>Max Temp:</strong> ${maxTemp.toFixed(1)}°C</p>
+                    <p><strong>Image Data Size:</strong> ${result.imageData.byteLength} bytes</p>
+                    <p><strong>Temp Data Size:</strong> ${result.tempData.byteLength} bytes</p>
+                `;
+                
+                // Create canvas
+                const canvas = document.createElement('canvas');
+                canvas.width = result.param.width;
+                canvas.height = result.param.height;
+                const ctx = canvas.getContext('2d');
+                const imgData = ctx.createImageData(result.param.width, result.param.height);
+                
+                for (let i = 0; i < result.imageData.length; i++) {
+                    const [r, g, b] = applyThermalPalette(result.imageData[i]);
+                    const idx = i * 4;
+                    imgData.data[idx] = r;
+                    imgData.data[idx + 1] = g;
+                    imgData.data[idx + 2] = b;
+                    imgData.data[idx + 3] = 255;
+                }
+                
+                ctx.putImageData(imgData, 0, 0);
+                output.appendChild(canvas);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('output').innerHTML = `<p style="color:red">Error: ${error.message}</p>`;
+            }
+        });
+        
+        function applyThermalPalette(luminance) {
+            const normalized = Math.max(0, Math.min(255, luminance)) / 255;
+            if (normalized < 0.3) {
+                return [Math.floor(normalized * 255 * 3), 0, 0];
+            } else if (normalized < 0.6) {
+                const t = (normalized - 0.3) / 0.3;
+                return [255, Math.floor(t * 100), 0];
+            } else {
+                const t = (normalized - 0.6) / 0.4;
+                return [255, 150 + Math.floor(t * 50), Math.floor(t * 255)];
+            }
+        }
+    </script>
+</body>
+</html>
