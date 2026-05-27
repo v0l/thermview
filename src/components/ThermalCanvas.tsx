@@ -73,6 +73,22 @@ export function ThermalCanvas({
         : fileInfo.name;
       drawInfoPill(ctx, tsText, 'bottomRight', dispW, dispH, labelScale);
     }
+
+    // Camera info pills
+    const cameraInfo = image.cameraInfo;
+    if (cameraInfo && overlay.showEmissivity) {
+      const makeModel = [cameraInfo.make, cameraInfo.model].filter(Boolean).join(' ');
+      if (makeModel) {
+        drawInfoPill(ctx, makeModel, 'topLeft', dispW, dispH, labelScale);
+      }
+      const lensInfo = [
+        cameraInfo.focalLength ? `${cameraInfo.focalLength}mm` : '',
+        cameraInfo.fNumber ? `f/${cameraInfo.fNumber}` : '',
+      ].filter(Boolean).join(' ');
+      if (lensInfo) {
+        drawInfoPill(ctx, lensInfo, 'topRight', dispW, dispH, labelScale);
+      }
+    }
   }, [dispW, dispH, effectiveScale, baseImage, cursors, tempUnit, labelScale, overlay, minSpot, maxSpot, emissivity, fileInfo]);
 
   const pickCoords = useCallback((ev: React.MouseEvent<HTMLCanvasElement>) => {

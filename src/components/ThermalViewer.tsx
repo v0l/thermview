@@ -2,9 +2,11 @@ import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { parseThermalImage } from '@/lib/format-detector';
 import { createTempCanvas } from '@/lib/irg-parser';
 import type { RenderOpts } from '@/lib/irg-parser';
+import { recomputeThermalImage } from '@/lib/calibration';
 import { CURSOR_COLORS, PALETTES, OVERSCAN_OPTIONS } from '@/lib/constants';
 import { toUnit } from '@/lib/units';
 import type { MeasurementCursor, OverlayConfig, FileInfo, TempUnit, Overscan, ScaleMode, Palette, ThermalImage } from '@/lib/types';
+import { extractExifMeta } from '@/lib/types';
 import { ThermalCanvas } from '@/components/ThermalCanvas';
 import { RangeColorBar } from '@/components/RangeColorBar';
 import { CursorPanel } from '@/components/CursorPanel';
@@ -14,6 +16,68 @@ function StatPill({ label, value }: { label: string; value: string }) {
     <div className="flex flex-col px-4 py-2.5 bg-thermal-surface/60">
       <span className="text-[0.6rem] tracking-[0.14em] uppercase text-thermal-muted font-display">{label}</span>
       <span className="font-display text-sm text-thermal-heading tabular-nums mt-0.5">{value}</span>
+    </div>
+  );
+}
+
+interface CalibrationEditorProps {
+  emissivity: number;
+  distance: number;
+  refTemp: number;
+  airTemp: number;
+  humidity: number;
+  tempUnit: TempUnit;
+  onEmissivity: (v: number) => void;
+  onDistance: (v: number) => void;
+  onRefTemp: (v: number) => void;
+  onAirTemp: (v: number) => void;
+  onHumidity: (v: number) => void;
+}
+
+function CalibrationEditor(p: CalibrationEditorProps) {
+  const inputCls = 'w-full px-2 py-1.5 bg-black/30 border border-thermal-border rounded-md font-display text-xs text-thermal-heading tabular-nums focus:outline-none focus:border-thermal-accent/50 focus:ring-1 focus:ring-thermal-accent/30 transition-colors';
+  const labelCls = 'font-display text-[0.55rem] text-thermal-muted uppercase tracking-wider';
+  const dimLabel = 'ml-2 text-[0.55rem] text-thermal-muted font-display';
+
+  return (
+    <div className="bg-thermal-surface/80 rounded-lg px-4 py-3">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="size-1.5 rounded-full bg-thermal-accent shadow-[0_0_6px] shadow-thermal-accent/40" />
+        <span className="font-display text-[0.6rem] text-thermal-heading tracking-[0.14em] uppercase">Calibration</span>
+        <span className="font-display text-[0.55rem] text-thermal-muted">edit parameters to recompute temperatures</span>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+        <div>
+          <div className={labelCls}>Emissivity</div>
+          <input type="number" className={inputCls} min={0.01} max={1} step={0.01}
+            value={p.emissivity} onChange={e => p.onEmissivity(parseFloat(e.target.value) || 0.95)} />
+          <div className={dimLabel}>ε: 0.01–1.00</div>
+        </div>
+        <div>
+          <div className={labelCls}>Distance</div>
+          <input type="number" className={inputCls} min={0.1} max={100} step={0.1}
+            value={p.distance} onChange={e => p.onDistance(parseFloat(e.target.value) || 1)} />
+          <div className={dimLabel}>metres</div>
+        </div>
+        <div>
+          <div className={labelCls}>Reflected Temp</div>
+          <input type="number" className={inputCls} min={-50} max={200} step={0.1}
+            value={p.refTemp} onChange={e => p.onRefTemp(parseFloat(e.target.value) || 20)} />
+          <div className={dimLabel}>°{p.tempUnit}</div>
+        </div>
+        <div>
+          <div className={labelCls}>Atmosphere Temp</div>
+          <input type="number" className={inputCls} min={-50} max={80} step={0.1}
+            value={p.airTemp} onChange={e => p.onAirTemp(parseFloat(e.target.value) || 20)} />
+          <div className={dimLabel}>°{p.tempUnit}</div>
+        </div>
+        <div>
+          <div className={labelCls}>Humidity</div>
+          <input type="number" className={inputCls} min={0} max={100} step={1}
+            value={p.humidity} onChange={e => p.onHumidity(parseFloat(e.target.value) || 50)} />
+          <div className={dimLabel}>% RH (0–100)</div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -33,6 +97,14 @@ export function ThermalViewer() {
   const [cursors, setCursors] = useState<MeasurementCursor[]>([]);
   const [overlay, setOverlay] = useState<OverlayConfig>({ showMinMaxSpots: true, showEmissivity: true, showTimestamp: true });
   const [fileInfo, setFileInfo] = useState<FileInfo>({ name: '', modified: null });
+
+  // Editable calibration params (initialised from file defaults)
+  const [editEmissivity, setEditEmissivity] = useState(0.95);
+  const [editDistance, setEditDistance] = useState(1);
+  const [editRefTemp, setEditRefTemp] = useState(20);
+  const [editAirTemp, setEditAirTemp] = useState(20);
+  const [editHumidity, setEditHumidity] = useState(50);
+
   const cursorIdRef = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const exportCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -45,11 +117,23 @@ export function ThermalViewer() {
     cdfLut: thermalImage?.cdfLut ?? undefined,
   }), [palette, rangeMin, rangeMax, overscan, scaleMode, inverted, thermalImage?.cdfLut]);
 
-  const renderedCanvas = useMemo(() => {
+  // Apply calibration edits: if isRecomputable, recompute; otherwise use as-is
+  const activeImage = useMemo(() => {
     if (!thermalImage) return null;
-    return createTempCanvas(thermalImage.celsius, thermalImage.width, thermalImage.height, renderOpts);
+    return recomputeThermalImage(thermalImage, {
+      emissivity: editEmissivity,
+      distance: editDistance,
+      refTemp: editRefTemp,
+      airTemp: editAirTemp,
+      humidity: editHumidity,
+    });
+  }, [thermalImage, editEmissivity, editDistance, editRefTemp, editAirTemp, editHumidity]);
+
+  const renderedCanvas = useMemo(() => {
+    if (!activeImage) return null;
+    return createTempCanvas(activeImage.celsius, activeImage.width, activeImage.height, renderOpts);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [thermalImage?.celsius, renderOpts]); // implicitly depends on thermalImage dimensions
+  }, [activeImage?.celsius, renderOpts]); // implicitly depends on image dimensions
 
   const processFile = useCallback((buf: ArrayBuffer, fileName?: string, modified?: number | null) => {
     try {
@@ -57,7 +141,26 @@ export function ThermalViewer() {
       setThermalImage(img);
       setRangeMin(img.dataMin);
       setRangeMax(img.dataMax);
-      setFileInfo({ name: img.fileName, modified: img.fileModified });
+
+      // ── Enrich with EXIF metadata (async, non-blocking) ────────────
+      extractExifMeta(buf).then(meta => {
+        if (meta) {
+          setThermalImage(prev => prev && { ...prev, cameraInfo: meta.cameraInfo, captureDate: meta.captureDate });
+        }
+      });
+
+      // Show timestamp: prefer EXIF capture date, fall back to file mtime, else nothing
+      const dateStr = img.captureDate
+        ? new Date(img.captureDate + 'Z').getTime()
+        : modified ?? null;
+      setFileInfo({ name: img.fileName, modified: dateStr });
+
+      // Reset editable params to file defaults
+      setEditEmissivity(img.emissivity);
+      setEditDistance(img.distance);
+      setEditRefTemp(img.refTemp);
+      setEditAirTemp(img.airTemp);
+      setEditHumidity(img.humidity);
     } catch (err) { alert('Failed to parse thermal image: ' + (err as Error).message); }
   }, []);
 
@@ -95,9 +198,9 @@ export function ThermalViewer() {
   }, []);
 
   const autoRange = () => {
-    if (!thermalImage) return;
-    setRangeMin(thermalImage.dataMin);
-    setRangeMax(thermalImage.dataMax);
+    if (!activeImage) return;
+    setRangeMin(activeImage.dataMin);
+    setRangeMax(activeImage.dataMax);
   };
   const range20_40 = () => { setRangeMin(20); setRangeMax(40); };
   const range0_80 = () => { setRangeMin(0); setRangeMax(80); };
@@ -113,10 +216,10 @@ export function ThermalViewer() {
     window.addEventListener('resize', calc);
     return () => window.removeEventListener('resize', calc);
   }, []);
-  const effectiveScale = thermalImage
-    ? Math.min(scale, Math.floor(maxImgH / thermalImage.height))
+  const effectiveScale = activeImage
+    ? Math.min(scale, Math.floor(maxImgH / activeImage.height))
     : 1;
-  const displayH = thermalImage ? thermalImage.height * effectiveScale : 0;
+  const displayH = activeImage ? activeImage.height * effectiveScale : 0;
 
   const download = useCallback(() => {
     const cvs = exportCanvasRef.current; if (!cvs) return;
@@ -273,13 +376,13 @@ export function ThermalViewer() {
           {thermalImage && renderedCanvas && (
             <div className="flex items-stretch gap-3">
               <RangeColorBar palette={palette} scaleMode={scaleMode}
-                dataMin={thermalImage.dataMin} dataMax={thermalImage.dataMax}
+                dataMin={activeImage!.dataMin} dataMax={activeImage!.dataMax}
                 rangeMin={rangeMin} rangeMax={rangeMax} tempUnit={tempUnit}
                 height={displayH || 300}
                 onMinChange={setRangeMin} onMaxChange={setRangeMax} />
               <div className="relative flex-1 min-w-0 overflow-hidden">
                 <ThermalCanvas
-                  image={thermalImage}
+                  image={activeImage!}
                   renderOpts={renderOpts} cursors={cursors}
                   scale={effectiveScale} tempUnit={tempUnit}
                   labelScale={labelScale}
@@ -300,13 +403,25 @@ export function ThermalViewer() {
             </div>
           )}
 
+          {thermalImage.isRecomputable && (
+            <CalibrationEditor
+              emissivity={editEmissivity} distance={editDistance}
+              refTemp={editRefTemp} airTemp={editAirTemp} humidity={editHumidity}
+              tempUnit={tempUnit}
+              onEmissivity={setEditEmissivity}
+              onDistance={setEditDistance}
+              onRefTemp={setEditRefTemp}
+              onAirTemp={setEditAirTemp}
+              onHumidity={setEditHumidity}
+            />
+          )}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-px rounded-lg overflow-hidden border border-thermal-border bg-thermal-border">
-            <StatPill label="Resolution" value={`${thermalImage.width}×${thermalImage.height}`} />
-            <StatPill label="Emissivity" value={thermalImage.emissivity.toFixed(3)} />
-            <StatPill label="Air Temp" value={`${toUnit(thermalImage.airTemp, tempUnit)}°${tempUnit}`} />
-            <StatPill label="Ref Temp" value={`${toUnit(thermalImage.refTemp, tempUnit)}°${tempUnit}`} />
-            <StatPill label="Distance" value={`${thermalImage.distance.toFixed(1)}m`} />
-            <StatPill label="Atm Trans" value={thermalImage.atmTrans.toFixed(3)} />
+            <StatPill label="Resolution" value={`${activeImage!.width}×${activeImage!.height}`} />
+            <StatPill label="Emissivity" value={activeImage!.emissivity.toFixed(3)} />
+            <StatPill label="Air Temp" value={`${toUnit(activeImage!.airTemp, tempUnit)}°${tempUnit}`} />
+            <StatPill label="Ref Temp" value={`${toUnit(activeImage!.refTemp, tempUnit)}°${tempUnit}`} />
+            <StatPill label="Distance" value={`${activeImage!.distance.toFixed(1)}m`} />
+            <StatPill label="Atm Trans" value={activeImage!.atmTrans.toFixed(3)} />
           </div>
         </>
       )}

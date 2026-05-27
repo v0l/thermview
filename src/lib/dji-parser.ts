@@ -67,14 +67,28 @@ export function parseDJI(buffer: ArrayBuffer): ThermalImage {
   }
 
   // ── Determine resolution ────────────────────────────────────────────
-  // Standard DJI DTAT3.0 thermal resolution is 640×512
-  const width = 640;
-  const height = 512;
-  const pixelCount = width * height;
-  const expectedRawSize = pixelCount * 2;
+  // Standard DJI DTAT3.0 thermal resolution is 640×512, but some cameras
+  // produce smaller frames. We detect resolution from data size.
+  let width = 640;
+  let height = 512;
+  let pixelCount = width * height;
 
-  if (app3Data.length < expectedRawSize) {
-    throw new Error(`DJI raw data too small: ${app3Data.length} < ${expectedRawSize}`);
+  if (app3Data.length < pixelCount * 2) {
+    // Try smaller common resolutions
+    const totalPixels = Math.floor(app3Data.length / 2);
+    // Common DJI resolutions: 640×512, 320×256, 160×120, etc.
+    if (totalPixels === 320 * 256) { width = 320; height = 256; pixelCount = totalPixels; }
+    else if (totalPixels === 160 * 120) { width = 160; height = 120; pixelCount = totalPixels; }
+    else {
+      // Fall back to a square-ish shape
+      height = Math.floor(Math.sqrt(totalPixels));
+      width = Math.floor(totalPixels / height);
+      pixelCount = width * height;
+    }
+  }
+
+  if (app3Data.length < pixelCount * 2) {
+    throw new Error(`DJI raw data too small: ${app3Data.length} < ${pixelCount * 2}`);
   }
 
   // ── Parse raw sensor values ─────────────────────────────────────────
@@ -192,6 +206,15 @@ export function parseDJI(buffer: ArrayBuffer): ThermalImage {
     atmTrans,
     fileName: '',
     fileModified: null,
+
+    // DJI stores pre-calibrated temperatures, not raw sensor counts.
+    isRecomputable: false,
+    rawValues: null,
+    planckR1: 0,
+    planckB: 0,
+    planckF: 0,
+    planckO: 0,
+    planckR2: 0,
   };
 }
 

@@ -2,10 +2,11 @@ import { parseIRG } from '@/lib/irg-parser';
 import { parseHikmicro } from '@/lib/hikmicro-parser';
 import { parseDJI } from '@/lib/dji-parser';
 import { parseFLIR } from '@/lib/flir-parser';
+import { parseFLIRRJPEG } from '@/lib/flir-rjpeg-parser';
 import type { ThermalImage } from '@/lib/types';
 
 /** Supported file format identifiers */
-export type ThermalFormat = 'irg' | 'hikmicro' | 'dji' | 'flir';
+export type ThermalFormat = 'irg' | 'hikmicro' | 'dji' | 'flir' | 'flir-rjpeg';
 
 /**
  * Auto-detect the thermal image format from raw bytes and parse it.
@@ -17,11 +18,8 @@ export type ThermalFormat = 'irg' | 'hikmicro' | 'dji' | 'flir';
  */
 export function parseThermalImage(buffer: ArrayBuffer, fileName?: string, modified?: number | null): ThermalImage {
   const bytes = new Uint8Array(buffer);
-
-  // ── Detect format ─────────────────────────────────────────────────────
   const format = detectFormat(bytes, fileName);
 
-  // ── Parse with the appropriate parser ─────────────────────────────────
   let image: ThermalImage;
   switch (format) {
     case 'irg':
@@ -36,11 +34,13 @@ export function parseThermalImage(buffer: ArrayBuffer, fileName?: string, modifi
     case 'flir':
       image = parseFLIR(buffer);
       break;
+    case 'flir-rjpeg':
+      image = parseFLIRRJPEG(buffer, fileName, modified);
+      break;
     default:
       throw new Error(`Unsupported file format${fileName ? ': ' + fileName : ''}`);
   }
 
-  // ── Attach file metadata ──────────────────────────────────────────────
   image.fileName = fileName || '';
   image.fileModified = modified ?? null;
 
@@ -89,7 +89,7 @@ function detectFormat(bytes: Uint8Array, fileName?: string): ThermalFormat {
         const app1hdr = String.fromCharCode(
           bytes[jpos + 4], bytes[jpos + 5], bytes[jpos + 6], bytes[jpos + 7],
         );
-        if (app1hdr === 'FLIR') return 'flir';
+        if (app1hdr === 'FLIR') return 'flir-rjpeg';
       }
       jpos++;
     }
@@ -135,24 +135,16 @@ function detectFormat(bytes: Uint8Array, fileName?: string): ThermalFormat {
     // Check for DJI: look for APP3 (0xFFE3) + APP4 (0xFFE4) with thermal data
     let hasApp3 = false;
     let hasApp4 = false;
-    offset = 0;
+    offset = 2; // skip SOI
     while (offset < bytes.length - 4) {
-      if (bytes[offset] === 0xFF) {
-        const marker = bytes[offset + 1];
-        if (marker === 0xE3) {
-          const len = (bytes[offset + 2] << 8) | bytes[offset + 3];
-          // DJI APP3 has large chunks (65534 bytes)
-          if (len > 1000) hasApp3 = true;
-        } else if (marker === 0xE4) {
-          const len = (bytes[offset + 2] << 8) | bytes[offset + 3];
-          // DJI APP4 has small chunks with calibration data
-          if (len > 100 && len < 500) hasApp4 = true;
-        } else if (marker === 0xD9) {
-          // Stop at first EOI
-          break;
-        }
-      }
-      offset++;
+      if (bytes[offset] !== 0xFF) { offset++; continue; }
+      const marker = bytes[offset + 1];
+      if (marker === 0xFF) { offset++; continue; }
+      if (marker === 0xD9 || marker === 0xDA) break;
+      const len = (bytes[offset + 2] << 8) | bytes[offset + 3];
+      if (marker === 0xE3 && len > 1000) hasApp3 = true;
+      else if (marker === 0xE4) hasApp4 = true;
+      offset += 2 + len;
     }
 
     if (hasApp3 && hasApp4) return 'dji';
@@ -163,21 +155,7 @@ function detectFormat(bytes: Uint8Array, fileName?: string): ThermalFormat {
     const ext = fileName.toLowerCase().split('.').pop();
     if (ext === 'irg') return 'irg';
     if (ext === 'img' || ext === 'seq') return 'flir';
-    // JPEG could be FLIR, Hikmicro, or DJI — check in order
-    if (ext === 'jpg' || ext === 'jpeg') {
-      // Check for Iref marker (Hikmicro)
-      let i = 0;
-      while (i < bytes.length - 8) {
-        if (bytes[i] === 0xFF && bytes[i + 1] === 0xE1) {
-          const hdr = String.fromCharCode(...bytes.slice(i + 4, i + 8));
-          if (hdr === 'Iref') return 'hikmicro';
-        }
-        i++;
-      }
-      // Could still be DJI
-      return 'dji';
-    }
   }
 
-  throw new Error('Unknown thermal image format');
+  throw new Error('Unknown thermal image format. This file contains no recognisable radiometric data.');
 }

@@ -65,7 +65,6 @@ export function parseFLIR(buffer: ArrayBuffer): ThermalImage {
   //   0x1c: checksum
 
   let rawDataOff = -1;
-  let rawDataLen = 0;
 
   for (let i = 0; i < nEntries; i++) {
     const entryOff = idxOff + i * 32;
@@ -78,7 +77,6 @@ export function parseFLIR(buffer: ArrayBuffer): ThermalImage {
     // Record type 1 = raw thermal data frame
     if (recType === 1 && recOff > 0 && recOff + recLen <= len) {
       rawDataOff = recOff;
-      rawDataLen = recLen;
     }
   }
 
@@ -147,7 +145,6 @@ export function parseFLIR(buffer: ArrayBuffer): ThermalImage {
   const emissivity = getF32(rawDataOff + 0x2c);
   const distance = getF32(rawDataOff + 0x30);
   const refTempK = getF32(rawDataOff + 0x34);
-  const field38K = getF32(rawDataOff + 0x38);
   const atmosTempK = getF32(rawDataOff + 0x3c);
   const humidityFrac = getF32(rawDataOff + 0x40);
 
@@ -177,10 +174,9 @@ export function parseFLIR(buffer: ArrayBuffer): ThermalImage {
   // stride (sensorW=327), with crop_x1=0 (not 4 as the header field suggests
   // for cropping the embedded preview — the sensor header crop applies to the
   // optical sensor readout, not the stored pixel grid).
-  const pixelDataOff = rawDataOff + 0x298;
-  const imageW = sensorW; // use full sensor width, not crop width
   // The stored grid is sensorW × (however many rows fit). For PM695 that is
   // sensorW × sensorH = 327×245 stored row-major.
+  const pixelDataOff = rawDataOff + 0x298;
 
   const pixelCount = cropW * cropH;
   const pixelBytesNeeded = sensorW * sensorH * 2;
@@ -278,36 +274,8 @@ export function parseFLIR(buffer: ArrayBuffer): ThermalImage {
   // ── Build CDF lookup for histogram equalization ────────────────────────
   const cdfLut = buildCDF(celsius);
 
-  // ── Extract camera metadata from header text fields ────────────────────
-  let cameraModel = '';
-  let cameraSerial = '';
+  // ── Extract file timestamp from header text fields ──────────────────
   let fileTimestamp: string | null = null;
-
-  // Camera model at offset 0x134 in file header (null-terminated string)
-  try {
-    let modelStr = '';
-    for (let m = 0; m < 32; m++) {
-      const ch = view.getUint8(0x134 + m);
-      if (ch === 0) break;
-      modelStr += String.fromCharCode(ch);
-    }
-    cameraModel = modelStr;
-  } catch {
-    // ignore
-  }
-
-  // Serial number at offset 0x148
-  try {
-    let serialStr = '';
-    for (let s = 0; s < 16; s++) {
-      const ch = view.getUint8(0x148 + s);
-      if (ch === 0) break;
-      serialStr += String.fromCharCode(ch);
-    }
-    cameraSerial = serialStr;
-  } catch {
-    // ignore
-  }
 
   // Date/time at offset 0x1b4
   try {
@@ -346,6 +314,16 @@ export function parseFLIR(buffer: ArrayBuffer): ThermalImage {
     ),
     fileName: '',
     fileModified: fileTimestamp ? Date.parse(fileTimestamp) : null,
+
+    // PM695 raw values are centi-Kelvin (pre-calibrated to camera params),
+    // not sensor AD counts. Recomputing via Planck is not meaningful.
+    isRecomputable: false,
+    rawValues: null,
+    planckR1: 0,
+    planckB: 0,
+    planckF: 0,
+    planckO: 0,
+    planckR2: 0,
   };
 }
 
@@ -357,7 +335,7 @@ export function parseFLIR(buffer: ArrayBuffer): ThermalImage {
  *   http://130.15.24.88/exiftool/forum/index.php/topic,4898.60.html
  * and Minkina & Dudzik's "Infrared Thermography: Errors and Uncertainties".
  */
-function raw2tempCelsius(
+export function raw2tempCelsius(
   raw: number,
   E: number,
   OD: number,
@@ -437,7 +415,7 @@ function raw2tempCelsius(
  * Calculate atmospheric transmission (tau).
  * Uses the same formula as the full raw2temp chain.
  */
-function calculateTau(
+export function calculateTau(
   distance: number,
   atmosTempC: number,
   humidity: number,
@@ -458,7 +436,7 @@ function calculateTau(
 }
 
 /** Build a cumulative-distribution LUT from a Celsius grid (1024 bins). */
-function buildCDF(celsius: Float32Array): Float32Array {
+export function buildCDF(celsius: Float32Array): Float32Array {
   const BINS = 1024;
   let dmin = Infinity;
   let dmax = -Infinity;

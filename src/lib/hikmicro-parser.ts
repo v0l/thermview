@@ -158,6 +158,15 @@ export function parseHikmicro(buffer: ArrayBuffer): ThermalImage {
     atmTrans,
     fileName: '',
     fileModified: null,
+
+    // Hikmicro stores pre-calibrated centi-Celsius, not raw sensor counts.
+    isRecomputable: false,
+    rawValues: null,
+    planckR1: 0,
+    planckB: 0,
+    planckF: 0,
+    planckO: 0,
+    planckR2: 0,
   };
 }
 

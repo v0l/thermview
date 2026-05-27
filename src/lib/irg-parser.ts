@@ -147,6 +147,15 @@ export function parseIRG(buffer: ArrayBuffer): ThermalImage {
     atmTrans: atmTransVal,
     fileName: '',
     fileModified: null,
+
+    // IRG stores pre-calibrated temperatures, not raw sensor counts.
+    isRecomputable: false,
+    rawValues: null,
+    planckR1: 0,
+    planckB: 0,
+    planckF: 0,
+    planckO: 0,
+    planckR2: 0,
   };
 }
 

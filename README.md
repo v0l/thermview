@@ -2,7 +2,7 @@
 
 **A web-based thermal imaging analysis tool — built for thermographers, not just developers.**
 
-ThermView parses, renders, and analyzes radiometric thermal images in the browser. It supports Infiray `.irg` binary files, Hikmicro JPEGs (Pocket2, SP60), and DJI R-JPEG files (Mavic 2 Enterprise Advanced). Features real-time palette switching, a canvas-based draggable temperature range bar, CDF histogram equalization, spot measurements with on-canvas min/max markers, and PNG export.
+ThermView parses, renders, and analyzes radiometric thermal images in the browser. It supports Infiray `.irg` binary files, Hikmicro JPEGs (Pocket2, SP60), FLIR AFF/FFF files (PM695), FLIR R-JPEG files (E40, T640, AX8, B60, etc.), and DJI R-JPEG files (Mavic 2 Enterprise Advanced). Features real-time palette switching, a canvas-based draggable temperature range bar, CDF histogram equalization, spot measurements with on-canvas min/max markers, and PNG export.
 
 <p align="center">
   <img src="public/favicon.svg" width="64" alt="ThermView icon" />
@@ -25,7 +25,7 @@ ThermView parses, renders, and analyzes radiometric thermal images in the browse
 
 | Feature | Description |
 |---|---|
-| **Multi-format parsing** | Auto-detects IRG, Hikmicro JPEG (Pocket2/SP60), and DJI R-JPEG (M2EA). Format-agnostic `ThermalImage` abstraction — add a parser, not rewrite the viewer. |
+| **Multi-format parsing** | Auto-detects IRG, Hikmicro JPEG (Pocket2/SP60), FLIR AFF (PM695), FLIR R-JPEG, and DJI R-JPEG (M2EA). Format-agnostic `ThermalImage` abstraction — add a parser, not rewrite the viewer. |
 | **9 color palettes** | Inferno, Iron, Jet, Hot, Lava, Plasma, Rainbow, Arctic, Grayscale |
 | **Canvas range bar** | Single-canvas render with panning gradient strip, dimmed out-of-range regions, tick marks, and draggable handle values |
 | **Scale modes** | Linear, logarithmic, and **histogram equalization** (1024-bin CDF LUT, built at parse-time) |
@@ -87,6 +87,27 @@ bun run preview    # Preview the production build locally
 ---
 
 ## File Formats
+
+### FLIR AFF/FFF (binary)
+
+FLIR's proprietary AGEMA File Format used by ThermaCAM and ResearchIR cameras.
+
+| Camera | Resolution | Record Type | Encoding |
+|---|---|---|---|
+| ThermaCAM PM695 | 327×245 | AFF1 (record type 1) | centi-Kelvin uint16 LE |
+| Other SC2000-style | varies | AFF1 | Planck formula |
+
+**File structure:** `AFF\0`/`FFF\0` header → record directory → thermal data record + calibration + raw pixels.
+
+### FLIR R-JPEG
+
+FLIR cameras from the Exx, Txxx, Ax, Bx series embed full radiometric data in standard JPEGs via the APP1 marker. The APP1 contains an FFF binary structure with Planck calibration constants and a PNG-encoded 16-bit raw sensor image.
+
+| Camera | Resolution | Data Location | Encoding |
+|---|---|---|---|
+| FLIR E40/E60/T640/AX8/B60 | varies by model | APP1 FFF record type 1 | 16-bit PNG (byte-swapped), Planck formula |
+
+**File structure:** JPEG → APP1 chunk(s) with `FLIR\0` header → FFF record directory → RawData PNG + CameraInfo (Planck constants, emissivity, etc.). Large APP1 payloads may be split across multiple chunks.
 
 ### Infiray IRG (binary)
 
@@ -241,6 +262,17 @@ Areas of particular interest:
 Open an issue or PR.
 
 ---
+
+## References
+
+ThermView's format parsers are informed by prior art and community-maintained documentation:
+
+- **[exiftool FLIR tags](https://exiftool.org/TagNames/FLIR.html)** — Canonical reference for FLIR AFF/FFF and R-JPEG binary structures, Planck calibration constants, and metadata field mappings.
+- **[Thermimage R package](https://github.com/gtatters/Thermimage)** (gtatters) — Implements `raw2temp()` Planck-temperature conversion and `readflirJPG()` for FLIR JPEG extraction. The raw-to-Celsius formula used in `flir-parser.ts` and `flir-rjpeg-parser.ts` is ported from Thermimage.
+- **[FlirImageExtractor](https://github.com/Nervengift/read_thermal.py)** (Nervengift) — Python tool for unpacking FLIR JPEGs via exiftool and PIL. Established the byte-swap pattern for malformed FLIR 16-bit PNG data.
+- **[thermal_parser](https://github.com/SanNianYiSi/thermal_parser)** (SanNianYiSi) — Multi-format Python parser supporting FLIR and DJI cameras. Demonstrated the chunked-APP1 reassembly approach (multiple `0xFFE1` segments per JPEG).
+- **[infiray_irg](https://github.com/jaseg/infiray_irg)** (jaseg) — Python reference implementation of the Infiray IRG binary format, used to validate the IRG parser.
+- **[Minkina & Dudzik — *Infrared Thermography: Errors and Uncertainties*](https://www.wiley.com/en-us/Infrared+Thermography%3A+Errors+and+Uncertainties-p-9780470747186)** — Foundational reference for the atmospheric transmission and Planck radiometry formulas.
 
 ## License
 
