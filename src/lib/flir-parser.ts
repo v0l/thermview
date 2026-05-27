@@ -174,11 +174,11 @@ export function parseFLIR(buffer: ArrayBuffer): ThermalImage {
 
   // ── Read raw pixel data ────────────────────────────────────────────────
   // Pixel data starts at +0x298 from record start.
-  // Stored at full sensor stride (sensorW), cropped to (cropW × cropH).
+  // Data is stored row-major at cropW stride (320 for PM695).
   const pixelDataOff = rawDataOff + 0x298;
 
   const pixelCount = cropW * cropH;
-  const pixelBytesNeeded = sensorW * sensorH * 2;
+  const pixelBytesNeeded = pixelCount * 2;
 
   if (pixelDataOff + pixelBytesNeeded > len) {
     throw new Error('Raw pixel data truncated in AFF file');
@@ -209,9 +209,7 @@ export function parseFLIR(buffer: ArrayBuffer): ThermalImage {
   // Read a few sample pixels to check if centi-Kelvin is reasonable
   const sampleRaw: number[] = [];
   for (let s = 0; s < Math.min(20, pixelCount); s++) {
-    const y = cropY1 + Math.floor((s / cropW) % cropH);
-    const x = cropX1 + (s % cropW);
-    sampleRaw.push(get16(pixelDataOff + (y * sensorW + x) * 2));
+    sampleRaw.push(get16(pixelDataOff + s * 2));
   }
   const sampleMin = Math.min(...sampleRaw);
   const sampleMax = Math.max(...sampleRaw);
@@ -224,12 +222,9 @@ export function parseFLIR(buffer: ArrayBuffer): ThermalImage {
   }
 
   if (useCentiKelvin) {
-    // Direct centi-Kelvin → Celsius
-    // Data stored at full sensor stride (sensorW), cropped to (cropW × cropH)
+    // Direct centi-Kelvin → Celsius, sequential row-major at cropW stride
     for (let pi = 0; pi < pixelCount; pi++) {
-      const y = cropY1 + Math.floor(pi / cropW);
-      const x = cropX1 + (pi % cropW);
-      const raw = get16(pixelDataOff + (y * sensorW + x) * 2);
+      const raw = get16(pixelDataOff + pi * 2);
       const c = raw / 100 - 273.15;
       celsius[pi] = c;
       if (c < dataMin) { dataMin = c; minIdx = pi; }
@@ -237,12 +232,9 @@ export function parseFLIR(buffer: ArrayBuffer): ThermalImage {
     }
   } else {
     // Full Planck formula conversion
-    // Data stored at full sensor stride (sensorW)
     const allRaw = new Float32Array(pixelCount);
     for (let pi = 0; pi < pixelCount; pi++) {
-      const y = cropY1 + Math.floor(pi / cropW);
-      const x = cropX1 + (pi % cropW);
-      allRaw[pi] = get16(pixelDataOff + (y * sensorW + x) * 2);
+      allRaw[pi] = get16(pixelDataOff + pi * 2);
     }
 
     const cameras = { // default calibrations from Thermimage
