@@ -173,12 +173,17 @@ export function parseFLIR(buffer: ArrayBuffer): ThermalImage {
   }
 
   // ── Read raw pixel data ────────────────────────────────────────────────
-  // Pixel data starts at +0x298 from record start.
-  // Data is stored row-major at cropW stride (320 for PM695).
+  // Pixel data starts at +0x298 from record start, stored at full sensor
+  // stride (sensorW=327), with crop_x1=0 (not 4 as the header field suggests
+  // for cropping the embedded preview — the sensor header crop applies to the
+  // optical sensor readout, not the stored pixel grid).
   const pixelDataOff = rawDataOff + 0x298;
+  const imageW = sensorW; // use full sensor width, not crop width
+  // The stored grid is sensorW × (however many rows fit). For PM695 that is
+  // sensorW × sensorH = 327×245 stored row-major.
 
   const pixelCount = cropW * cropH;
-  const pixelBytesNeeded = pixelCount * 2;
+  const pixelBytesNeeded = sensorW * sensorH * 2;
 
   if (pixelDataOff + pixelBytesNeeded > len) {
     throw new Error('Raw pixel data truncated in AFF file');
@@ -209,7 +214,9 @@ export function parseFLIR(buffer: ArrayBuffer): ThermalImage {
   // Read a few sample pixels to check if centi-Kelvin is reasonable
   const sampleRaw: number[] = [];
   for (let s = 0; s < Math.min(20, pixelCount); s++) {
-    sampleRaw.push(get16(pixelDataOff + s * 2));
+    const y = cropY1 + Math.floor((s / cropW) % cropH);
+    const x = (s % cropW); // col 0..cropW-1 within the stored grid
+    sampleRaw.push(get16(pixelDataOff + (y * sensorW + x) * 2));
   }
   const sampleMin = Math.min(...sampleRaw);
   const sampleMax = Math.max(...sampleRaw);
@@ -222,9 +229,12 @@ export function parseFLIR(buffer: ArrayBuffer): ThermalImage {
   }
 
   if (useCentiKelvin) {
-    // Direct centi-Kelvin → Celsius, sequential row-major at cropW stride
+    // Direct centi-Kelvin → Celsius
+    // Data stored at full sensor stride, crop col range is 0..cropW-1
     for (let pi = 0; pi < pixelCount; pi++) {
-      const raw = get16(pixelDataOff + pi * 2);
+      const y = cropY1 + Math.floor(pi / cropW);
+      const x = (pi % cropW); // col offset within the stored grid
+      const raw = get16(pixelDataOff + (y * sensorW + x) * 2);
       const c = raw / 100 - 273.15;
       celsius[pi] = c;
       if (c < dataMin) { dataMin = c; minIdx = pi; }
@@ -234,7 +244,9 @@ export function parseFLIR(buffer: ArrayBuffer): ThermalImage {
     // Full Planck formula conversion
     const allRaw = new Float32Array(pixelCount);
     for (let pi = 0; pi < pixelCount; pi++) {
-      allRaw[pi] = get16(pixelDataOff + pi * 2);
+      const y = cropY1 + Math.floor(pi / cropW);
+      const x = (pi % cropW);
+      allRaw[pi] = get16(pixelDataOff + (y * sensorW + x) * 2);
     }
 
     const cameras = { // default calibrations from Thermimage
