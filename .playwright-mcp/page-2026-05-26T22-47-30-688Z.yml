@@ -1,8 +1,0 @@
-- generic [ref=e4]:
-  - banner [ref=e5]:
-    - heading "THERMVIEW" [level=1] [ref=e8]
-    - generic [ref=e9]: MULTI-FORMAT THERMAL ANALYZER
-  - generic [ref=e10] [cursor=pointer]:
-    - img [ref=e12]
-    - paragraph [ref=e14]: Drop thermal image here
-    - paragraph [ref=e15]: Supports IRG, Hikmicro, DJI — drag or click to browse
