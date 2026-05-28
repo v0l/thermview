@@ -206,19 +206,8 @@ export function ThermalViewer() {
   const range0_80 = () => { setRangeMin(0); setRangeMax(80); };
   const rangeNeg10_50 = () => { setRangeMin(-10); setRangeMax(50); };
 
-  // Fit image within viewport height. Width overflow is handled by CSS max-w-full.
-  const [maxImgH, setMaxImgH] = useState(600);
-  useEffect(() => {
-    const calc = () => {
-      setMaxImgH(window.innerHeight - 220);
-    };
-    calc();
-    window.addEventListener('resize', calc);
-    return () => window.removeEventListener('resize', calc);
-  }, []);
-  const effectiveScale = activeImage
-    ? Math.min(scale, Math.floor(maxImgH / activeImage.height))
-    : 1;
+  // Image renders at full scaled size, can exceed viewport.
+  const effectiveScale = activeImage ? scale : 1;
   const displayH = activeImage ? activeImage.height * effectiveScale : 0;
 
   const download = useCallback(() => {
@@ -230,7 +219,7 @@ export function ThermalViewer() {
   }, []);
 
   return (
-    <div className="max-w-[1200px] mx-auto py-6 px-4 space-y-6">
+    <div className="py-4 space-y-4">
       <header className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="size-2.5 rounded-full bg-thermal-hot shadow-[0_0_10px] shadow-thermal-hot/50 animate-pulse" />
@@ -241,7 +230,7 @@ export function ThermalViewer() {
 
       {!thermalImage ? (
         <div onDragOver={e => e.preventDefault()} onDrop={handleDrop} onClick={() => fileInputRef.current?.click()}
-          className="relative group cursor-pointer border-2 border-dashed border-thermal-border rounded-2xl p-20 flex flex-col items-center gap-4 hover:border-thermal-accent/40 transition-colors duration-300">
+          className="relative group cursor-pointer border-2 border-dashed border-thermal-border rounded-2xl p-12 flex flex-col items-center gap-4 hover:border-thermal-accent/40 transition-colors duration-300">
           <input ref={fileInputRef} type="file" accept=".irg,.jpg,.jpeg,.img,.seq" onChange={upload} className="hidden" />
           <div className="size-16 rounded-2xl bg-thermal-surface flex items-center justify-center group-hover:bg-thermal-accent/10 transition-colors">
             <svg className="size-7 text-thermal-muted group-hover:text-thermal-accent transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -374,13 +363,13 @@ export function ThermalViewer() {
           </div>
 
           {thermalImage && renderedCanvas && (
-            <div className="flex items-stretch gap-3">
+            <div className="flex items-stretch gap-3" style={{ flexWrap: 'nowrap', minWidth: 'min-content' }}>
               <RangeColorBar palette={palette} scaleMode={scaleMode}
                 dataMin={activeImage!.dataMin} dataMax={activeImage!.dataMax}
                 rangeMin={rangeMin} rangeMax={rangeMax} tempUnit={tempUnit}
-                height={displayH || 300}
+                height={displayH || 300} inverted={inverted}
                 onMinChange={setRangeMin} onMaxChange={setRangeMax} />
-              <div className="relative flex-1 min-w-0 overflow-hidden">
+              <div className="relative flex-1 overflow-visible" style={{ minWidth: 'min-content' }}>
                 <ThermalCanvas
                   image={activeImage!}
                   renderOpts={renderOpts} cursors={cursors}

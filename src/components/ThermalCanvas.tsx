@@ -115,7 +115,7 @@ export function ThermalCanvas({
     <canvas
       ref={canvasRef}
       width={dispW} height={dispH}
-      className="block max-w-full rounded-lg border border-thermal-border cursor-crosshair"
+      className="block rounded-lg border border-thermal-border cursor-crosshair"
       onClick={handleClick} onMouseMove={handleMouseMove} onMouseLeave={() => onHover(null)}
     />
   );

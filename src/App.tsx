@@ -2,7 +2,7 @@ import { ThermalViewer } from './components/ThermalViewer'
 
 function App() {
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="w-full mx-auto py-4 px-4">
       <ThermalViewer />
     </div>
   )

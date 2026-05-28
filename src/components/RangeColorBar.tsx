@@ -4,7 +4,7 @@ import { toUnit } from '@/lib/units';
 import type { Palette, ScaleMode, TempUnit } from '@/lib/types';
 
 export function RangeColorBar({
-  palette, scaleMode, dataMin, dataMax, rangeMin, rangeMax, tempUnit, height, onMinChange, onMaxChange,
+  palette, scaleMode, dataMin, dataMax, rangeMin, rangeMax, tempUnit, height, inverted, onMinChange, onMaxChange,
 }: {
   palette: Palette;
   scaleMode: ScaleMode;
@@ -12,6 +12,7 @@ export function RangeColorBar({
   rangeMin: number; rangeMax: number;
   tempUnit: TempUnit;
   height: number;
+  inverted: boolean;
   onMinChange: (v: number) => void;
   onMaxChange: (v: number) => void;
 }) {
@@ -71,7 +72,14 @@ export function RangeColorBar({
     const rx = lx + TICK_W;
 
     // --- Gradient bar ---
-    ctx.drawImage(dataStrip, bx, 0, BAR_W, height);
+    if (inverted) {
+      ctx.save();
+      ctx.scale(1, -1);
+      ctx.drawImage(dataStrip, bx, -height, BAR_W, height);
+      ctx.restore();
+    } else {
+      ctx.drawImage(dataStrip, bx, 0, BAR_W, height);
+    }
 
     // Dim out-of-range regions
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
@@ -159,7 +167,7 @@ export function RangeColorBar({
     ctx.textBaseline = 'middle';
     ctx.fillText(`°${tempUnit}`, rx + RIGHT_W - 20, height / 2);
 
-  }, [height, rangeMinFrac, rangeMaxFrac, ticks, dataStrip, fmt, rangeMin, rangeMax, tempUnit]);
+  }, [height, rangeMinFrac, rangeMaxFrac, ticks, dataStrip, fmt, rangeMin, rangeMax, tempUnit, inverted]);
 
   // --- Pointer events ---------------------------------------------------------
   const handlePointerDown = (e: React.PointerEvent) => {
