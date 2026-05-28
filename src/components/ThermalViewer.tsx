@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { useState, useRef, useCallback, useMemo } from 'react';
 import { parseThermalImage } from '@/lib/format-detector';
 import { createTempCanvas } from '@/lib/irg-parser';
 import type { RenderOpts } from '@/lib/irg-parser';
