@@ -231,14 +231,14 @@ export function ThermalViewer() {
       {!thermalImage ? (
         <div onDragOver={e => e.preventDefault()} onDrop={handleDrop} onClick={() => fileInputRef.current?.click()}
           className="relative group cursor-pointer border-2 border-dashed border-thermal-border rounded-2xl p-12 flex flex-col items-center gap-4 hover:border-thermal-accent/40 transition-colors duration-300">
-          <input ref={fileInputRef} type="file" accept=".irg,.jpg,.jpeg,.img,.seq" onChange={upload} className="hidden" />
+          <input ref={fileInputRef} type="file" accept=".irg,.jpg,.jpeg,.img" onChange={upload} className="hidden" />
           <div className="size-16 rounded-2xl bg-thermal-surface flex items-center justify-center group-hover:bg-thermal-accent/10 transition-colors">
             <svg className="size-7 text-thermal-muted group-hover:text-thermal-accent transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
             </svg>
           </div>
           <p className="font-display text-sm text-thermal-heading">Drop thermal image here</p>
-          <p className="text-xs text-thermal-muted mt-1">Supports IRG, Hikmicro, DJI — drag or click to browse</p>
+          <p className="text-xs text-thermal-muted mt-1">IRG, Hikmicro, DJI, FLIR R-JPEG, FLIR .img — drag or click to browse</p>
         </div>
       ) : (
         <>

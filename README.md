@@ -2,7 +2,7 @@
 
 **A web-based thermal imaging analysis tool — built for thermographers, not just developers.**
 
-ThermView parses, renders, and analyzes radiometric thermal images in the browser. It supports Infiray `.irg` binary files, Hikmicro JPEGs (Pocket2, SP60), FLIR AFF/FFF files (PM695), FLIR R-JPEG files (E40, T640, AX8, B60, etc.), and DJI R-JPEG files (Mavic 2 Enterprise Advanced). Features real-time palette switching, a canvas-based draggable temperature range bar, CDF histogram equalization, spot measurements with on-canvas min/max markers, and PNG export.
+ThermView parses, renders, and analyzes radiometric thermal images in the browser. It supports Infiray `.irg` binary files, Hikmicro JPEGs (Pocket2, SP60), FLIR R-JPEG files (E40, T640, AX8, B60, etc.), and DJI R-JPEG files (Mavic 2 Enterprise Advanced). Features real-time palette switching, a canvas-based draggable temperature range bar, CDF histogram equalization, spot measurements with on-canvas min/max markers, and PNG export.
 
 <p align="center">
   <img src="public/favicon.svg" width="64" alt="ThermView icon" />
@@ -25,7 +25,7 @@ ThermView parses, renders, and analyzes radiometric thermal images in the browse
 
 | Feature | Description |
 |---|---|
-| **Multi-format parsing** | Auto-detects IRG, Hikmicro JPEG (Pocket2/SP60), FLIR AFF (PM695), FLIR R-JPEG, and DJI R-JPEG (M2EA). Format-agnostic `ThermalImage` abstraction — add a parser, not rewrite the viewer. |
+| **Multi-format parsing** | Auto-detects IRG, Hikmicro JPEG (Pocket2/SP60), FLIR R-JPEG, and DJI R-JPEG (M2EA). Format-agnostic `ThermalImage` abstraction — add a parser, not rewrite the viewer. |
 | **9 color palettes** | Inferno, Iron, Jet, Hot, Lava, Plasma, Rainbow, Arctic, Grayscale |
 | **Canvas range bar** | Single-canvas render with panning gradient strip, dimmed out-of-range regions, tick marks, and draggable handle values |
 | **Scale modes** | Linear, logarithmic, and **histogram equalization** (1024-bin CDF LUT, built at parse-time) |
@@ -40,7 +40,7 @@ ThermView parses, renders, and analyzes radiometric thermal images in the browse
 | **PNG export** | Download the rendered thermal image |
 | **Metadata display** | Emissivity, air temp, ref temp, distance, atmospheric transmittance |
 | **Dark theme** | Purpose-built thermal imaging UI with noise-texture background |
-| **Drag & drop** | Drop `.irg` files directly onto the app |
+| **Drag & drop** | Drop thermal files (`.irg`, `.jpg`, `.jpeg`, `.img`) directly onto the app |
 
 ---
 
