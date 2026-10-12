@@ -1,88 +1,83 @@
 # ThermView
 
-**A web-based thermal imaging analysis tool — built for thermographers, not just developers.**
+**A thermal imaging analysis tool for thermographers, not just developers.**
 
-ThermView parses, renders, and analyzes radiometric thermal images in the browser. It supports Infiray `.irg` binary files, Hikmicro JPEGs (Pocket2, SP60), FLIR R-JPEG files (E40, T640, AX8, B60, etc.), and DJI R-JPEG files (Mavic 2 Enterprise Advanced). Features real-time palette switching, a canvas-based draggable temperature range bar, CDF histogram equalization, spot measurements with on-canvas min/max markers, and PNG export.
-
-<p align="center">
-  <img src="public/favicon.svg" width="64" alt="ThermView icon" />
-</p>
+ThermView reads, renders and measures radiometric thermal images, natively on the desktop or in the browser through WebAssembly. It supports Infiray `.irg` files, Hikmicro JPEGs (Pocket2, SP60), FLIR R-JPEG files (E40, T640, AX8, B60 and others), FLIR AFF `.img` files and DJI R-JPEG files (Mavic 2 Enterprise Advanced). It is written in Rust with [egui](https://github.com/emilk/egui) and the [egui_bench](https://github.com/v0l/egui_bench) panel theme.
 
 <p align="center">
-  <a href="#features">Features</a> ·
-  <a href="#getting-started">Getting Started</a> ·
-  <a href="#usage">Usage</a> ·
-  <a href="#file-formats">Formats</a> ·
-  <a href="#architecture">Architecture</a> ·
-  <a href="#roadmap">Roadmap</a>
+  <img src="web/public/favicon.svg" width="64" alt="ThermView icon" />
 </p>
 
 ---
 
 ## Features
 
-### Current
-
 | Feature | Description |
 |---|---|
-| **Multi-format parsing** | Auto-detects IRG, Hikmicro JPEG (Pocket2/SP60), FLIR R-JPEG, and DJI R-JPEG (M2EA). Format-agnostic `ThermalImage` abstraction — add a parser, not rewrite the viewer. |
-| **9 color palettes** | Inferno, Iron, Jet, Hot, Lava, Plasma, Rainbow, Arctic, Grayscale |
-| **Canvas range bar** | Single-canvas render with panning gradient strip, dimmed out-of-range regions, tick marks, and draggable handle values |
-| **Scale modes** | Linear, logarithmic, and **histogram equalization** (1024-bin CDF LUT, built at parse-time) |
-| **Overscan** | clip, hide, below-color, above-color |
-| **Min/max spot overlay** | ▲ red-hot max and ▼ blue-cold min triangle markers with live temperature labels |
-| **Info overlays** | Emissivity pill and file timestamp pill on-canvas corners |
-| **Spot measurements** | Click-to-place, crosshair with label, rename via sidebar panel |
-| **Hover readout** | Real-time pixel temperature as you move the mouse |
-| **Unit conversion** | Toggle between Celsius (°C) and Fahrenheit (°F) |
-| **Palette inversion** | Flip hot/cold colors |
-| **Image scaling** | 1×–6× nearest-neighbor upscale |
-| **PNG export** | Download the rendered thermal image |
-| **Metadata display** | Emissivity, air temp, ref temp, distance, atmospheric transmittance |
-| **Dark theme** | Purpose-built thermal imaging UI with noise-texture background |
-| **Drag & drop** | Drop thermal files (`.irg`, `.jpg`, `.jpeg`, `.img`) directly onto the app |
-
----
+| **Multi-format parsing** | Detects IRG, Hikmicro JPEG, FLIR R-JPEG, FLIR AFF and DJI R-JPEG from the bytes. Every parser returns the same `ThermalImage`, so a new format is one parser. |
+| **9 colour palettes** | Inferno, Iron, Jet, Hot, Lava, Plasma, Rainbow, Arctic, Grayscale, with inversion |
+| **Colour bar** | A legend painted from the same colour function as the image, with draggable window handles, ticks in the chosen unit and the out-of-window part dimmed |
+| **Mappings** | Linear, logarithmic and histogram equalisation (1024-bin CDF, rescaled to the window) |
+| **Overscan** | clip, hide, below colour, above colour |
+| **Min/max markers** | ▲ hottest and ▼ coldest pixel with live readings |
+| **Info overlays** | Emissivity, camera, lens and capture time in the image corners |
+| **Spot measurements** | Click to place, rename in the side panel, readings follow recalibration |
+| **Pointer readout** | Temperature of the pixel under the pointer |
+| **Recalibration** | For FLIR R-JPEG, edit emissivity, distance, reflected and air temperature and humidity, and every pixel is recomputed from the raw counts |
+| **Units** | °C or °F everywhere, including the calibration fields |
+| **Scaling** | 1x to 6x nearest-neighbour |
+| **PNG export** | The scaled image with every marker and label on it, from the app or the command line |
+| **Metadata** | EXIF make, model, lens, software, serial, capture time and GPS |
+| **Drag and drop** | Drop a file onto the window, native or web |
 
 ## Getting Started
 
-### Prerequisites
-
-- [Bun](https://bun.sh/) ≥ 1.x
-
-### Install
+Needs Rust 1.92 or newer.
 
 ```bash
-git clone https://github.com/user/thermview.git
+git clone https://github.com/v0l/thermview.git
 cd thermview
-bun install
+cargo run --release                 # open the viewer
+cargo run --release -- photo.jpg    # open the viewer with a file
 ```
 
-### Development
+The command line can also read and render without a window:
 
 ```bash
-bun run dev        # Start Vite dev server at http://localhost:5173
+thermview info photo.jpg
+thermview render photo.jpg -o out.png --palette iron --scale 4 --range 20:40 --point 120,160
 ```
 
-### Production
+`render` takes `--fahrenheit`, `--mapping linear|log|equalise`, `--overscan clip|hide|below|above`, `--invert`, `--bare` (no overlays) and any number of `--point X,Y`.
+
+### Web
 
 ```bash
-bun run build      # TypeScript check + Vite production build
-bun run preview    # Preview the production build locally
+web/build.sh                        # writes the site to target/web
+python3 -m http.server -d target/web 8080
 ```
+
+The build installs the matching `wasm-bindgen-cli` into `target/tools` on first run, and uses `wasm-opt` when it is on the path. Static files in `web/public` (icons, manifest, `_headers`, `_redirects`) are copied next to `index.html`.
+
+### Tests
+
+```bash
+cargo test
+```
+
+The tests in `tests/samples.rs` and the FLIR screenshot in `tests/ui.rs` read real camera files from `test-samples/`, which is not tracked, and are skipped when it is missing. `tests/ui.rs` drives the whole app headless and writes screenshots to `target/tmp`.
 
 ---
 
 ## Usage
 
-1. Open `http://localhost:5173`
-2. Drop a `.irg` file onto the window (or click the drop zone to browse)
-3. Select a color palette from the toolbar
-4. Drag the range bar handles to adjust the temperature window
-5. Click the image to place measurement points
-6. Toggle °C/°F, scale mode (linear / log / equalize), overscan, inversion as needed
-7. Toggle overlay layers (min/max spots, info pills, timestamp)
-8. Export the view as PNG
+1. Open a file with **open** (ctrl+O) or drop one onto the window
+2. Pick a palette on the left
+3. Drag the colour bar handles, type the window, or use a preset
+4. Click the image to place measurement points, rename them on the right
+5. Switch °C/°F, mapping, overscan, inversion, scale and overlays
+6. For FLIR R-JPEG, edit the calibration on the right
+7. **export** (ctrl+E) saves the view as a PNG next to the source file, or downloads it on the web
 
 ---
 
@@ -107,7 +102,7 @@ FLIR cameras from the Exx, Txxx, Ax, Bx series embed full radiometric data in st
 |---|---|---|---|
 | FLIR E40/E60/T640/AX8/B60 | varies by model | APP1 FFF record type 1 | 16-bit PNG (byte-swapped), Planck formula |
 
-**File structure:** JPEG → APP1 chunk(s) with `FLIR\0` header → FFF record directory → RawData PNG + CameraInfo (Planck constants, emissivity, etc.). Large APP1 payloads may be split across multiple chunks.
+**File structure:** JPEG → APP1 chunk(s) with `FLIR\0` header → FFF record directory → RawData PNG + CameraInfo (Planck constants, emissivity, etc.). Large APP1 payloads may be split across multiple chunks. PlanckO and PlanckR2 are read from CameraInfo offsets `0x308` and `0x30c`, the same place exiftool reads them.
 
 ### Infiray IRG (binary)
 
@@ -142,6 +137,13 @@ DJI drone thermal cameras embed raw sensor data in JPEG APP markers.
 | Mavic 2 Enterprise Advanced | 640×512 | APP3 segments (concatenated) | uint16 LE, raw/64 = K |
 
 **File structure:** APP1 (EXIF) → APP3 × N (raw thermal, uint16 LE) → APP4 (calibration params as float32) → JPEG image data.
+
+The raw/64 conversion is an approximation; DJI's own SDK applies calibration curves that are not public. Files whose APP3 data is not a whole 640×512, 320×256 or 160×120 frame, such as the Zenmuse XT S, are refused rather than shown with made-up temperatures.
+
+### Infiray IRG header fields
+
+| Offset | Size | Field |
+|---|---|---|
 | `0x22` | 2 bytes | Reference temperature (°C × 1000) |
 | `0x24` | 2 bytes | Distance (m × 1000) |
 | `0x26` | 2 bytes | Air temperature (°C × 1000) |
@@ -156,7 +158,7 @@ DJI drone thermal cameras embed raw sensor data in JPEG APP markers.
 °C = raw / tempScale − 273.15
 ```
 
-Where `tempScale` is 16 for C210 cameras (`flag0 = 0`) or 10 for all other variants. The parser computes the full Celsius grid (`Float32Array`) and min/max/CDF at parse time — consuming code never touches raw values.
+Where `tempScale` is 16 for C210 cameras (`flag0 = 0`) or 10 for all other variants. The parser computes the full Celsius grid and min/max/CDF at parse time, so nothing after it touches raw values.
 
 ---
 
@@ -164,55 +166,44 @@ Where `tempScale` is 16 for C210 cameras (`flag0 = 0`) or 10 for all other varia
 
 ```
 src/
-├── components/
-│   ├── ThermalViewer.tsx     # Main viewer — file I/O, toolbar, layout, state
-│   ├── ThermalCanvas.tsx     # Canvas renderer — image, crosshairs, labels, overlays
-│   ├── RangeColorBar.tsx     # Canvas-based interactive level/span with gradient, ticks, handles
-│   ├── CursorPanel.tsx       # Measurement point list with rename/delete
-│   └── ui/                   # shadcn/ui primitives (button, card, select, slider, label)
-├── lib/
-│   ├── irg-parser.ts         # Binary parser + palette system + temp→canvas rendering
-│   ├── types.ts              # Shared TypeScript types (ThermalImage, RenderOpts, etc.)
-│   ├── constants.ts          # Palette definitions, cursor colors, overscan options
-│   ├── units.ts              # °C ↔ °F conversion
-│   └── drawing.ts            # Canvas crosshair, label, marker, and pill drawing primitives
-├── App.tsx                   # Root component
-├── main.tsx                  # React DOM entry
-└── index.css                 # Tailwind v4 theme + global styles
+├── formats/          # one parser per format, plus detection
+│   ├── irg.rs        # Infiray IRG
+│   ├── hikmicro.rs   # Hikmicro HDRI block
+│   ├── dji.rs        # DJI APP3/APP4
+│   ├── flir.rs       # FLIR AFF/FFF records
+│   └── rjpeg.rs      # FLIR R-JPEG (APP1 chunks, PNG raw data)
+├── image.rs          # ThermalImage, stats, CDF, camera info, recompute
+├── planck.rs         # raw counts to Celsius, atmospheric transmission
+├── exif.rs           # EXIF camera metadata
+├── palette.rs        # palettes, mappings, overscan, units, rendering
+├── doc.rs            # an open file: image, look, points, overlays
+├── overlay.rs        # crosshairs, labels, min/max markers, corner pills
+├── colorbar.rs       # the interactive colour bar
+├── app.rs            # the egui app
+├── export.rs         # PNG export: image plus tessellated overlays
+├── raster.rs         # software rasteriser for egui meshes
+├── headless.rs       # drives the app without a window, for tests
+├── host.rs           # file open/save, native and web
+└── main.rs           # GUI and command line
+web/                  # WebAssembly entry, index.html, static files
 ```
 
 ### Data Flow
 
 ```
-.irg file → parseIRG(buf) → ThermalImage (celsius grid, min/max, CDF LUT, metadata)
+file bytes → formats::parse → ThermalImage (Celsius grid, min/max, CDF, metadata)
                                     ↓
-                          ThermalViewer (state: range, palette, scale mode)
+                     Doc (look: palette, window, mapping; points; overlays)
                                     ↓
-                          createTempCanvas(celsius, w, h, renderOpts) → offscreen canvas
-                                    ↓
-                          ThermalCanvas: blit scaled + draw cursors/overlays on top
+                Look::render → texture, overlay::paint on top, colorbar beside it
 ```
-
-### Tech Stack
-
-| Layer | Choice |
-|---|---|
-| Framework | React 19 |
-| Language | TypeScript |
-| Bundler | Vite 8 |
-| Runtime | Bun |
-| UI primitives | shadcn/ui + Base UI |
-| Styling | Tailwind CSS v4 |
-| Fonts | JetBrains Mono (display), Inter Variable (body) |
 
 ### Design Decisions
 
-- **No runtime dependencies for image processing.** All thermal rendering uses the Canvas 2D API directly — no WebGL, no image processing libraries.
-- **Gradient-stop palette system.** Each palette is defined as an array of `{pos, r, g, b}` stops with linear interpolation. Easy to add or customize palettes.
-- **Temperature-driven rendering.** Pixels are colored by their actual Celsius temperature (a `Float32Array` computed once at parse time), not their 8-bit luminance value. Palette, range, and scale mode changes are all correct without re-parsing.
-- **ThermalImage abstraction.** The parser produces a decoded image structure with all computations done upfront (Celsius conversion, min/max spots, CDF LUT). Adding a new file format means writing one parser function that returns a `ThermalImage`.
-- **Offscreen canvas for source data.** The base thermal image is rendered once into an offscreen canvas, then drawn scaled to the display canvas. Cursors and labels are drawn on top for each frame.
-- **Canvas-based range bar.** All elements (gradient, ticks, labels, dimmed overlays, handle dots, handle lines, readout values) are rendered in a single `<canvas>` — no HTML-overlay z-index jank.
+- **Temperature-driven rendering.** Pixels are coloured from their Celsius value, computed once at parse time. Palette, window and mapping changes never re-parse.
+- **One colour function.** The image, the colour bar and the export all call `Look::rgba`, so the legend cannot disagree with the picture.
+- **One overlay painter.** `overlay::paint` draws onto an egui `Painter` for the screen and into a headless context for export, so the PNG matches what you see.
+- **Raw counts kept where they exist.** FLIR R-JPEG keeps its sensor counts and Planck constants, so calibration edits recompute every pixel.
 
 ---
 
@@ -222,7 +213,7 @@ See [`plan.md`](plan.md) for the full market research and feature gap analysis a
 
 ### Phase 1 — Table Stakes
 
-- [ ] **Editable parameters** — emissivity, reflected temp, air temp, humidity, distance (re-renders on change)
+- [x] **Editable parameters**: emissivity, reflected temp, air temp, humidity, distance, for FLIR R-JPEG
 - [ ] **Measurement shapes** — box/rectangle, ellipse/circle, line (with min/max/avg), delta between two spots
 - [ ] **Isotherms / color alarms** — highlight pixels above/below/between configurable thresholds
 - [ ] **Text annotations** — free-text notes placed on the image
@@ -246,7 +237,7 @@ See [`plan.md`](plan.md) for the full market research and feature gap analysis a
 
 Commercial thermography software is Windows-only, expensive, and locked to specific camera brands. FLIR Thermal Studio Pro costs hundreds per year. Fluke Connect is tied to Fluke hardware. Testo IRSoft is PC-only.
 
-ThermView runs in any browser, on any OS, and the IRG parser works on files from multiple Infiray camera variants — no vendor lock-in. The goal is to be the **VS Code of thermal imaging**: fast, cross-platform, extensible, and free.
+ThermView runs in any browser and natively on any OS, and the IRG parser works on files from multiple Infiray camera variants — no vendor lock-in. The goal is to be the **VS Code of thermal imaging**: fast, cross-platform, extensible, and free.
 
 ---
 
@@ -268,7 +259,7 @@ Open an issue or PR.
 ThermView's format parsers are informed by prior art and community-maintained documentation:
 
 - **[exiftool FLIR tags](https://exiftool.org/TagNames/FLIR.html)** — Canonical reference for FLIR AFF/FFF and R-JPEG binary structures, Planck calibration constants, and metadata field mappings.
-- **[Thermimage R package](https://github.com/gtatters/Thermimage)** (gtatters) — Implements `raw2temp()` Planck-temperature conversion and `readflirJPG()` for FLIR JPEG extraction. The raw-to-Celsius formula used in `flir-parser.ts` and `flir-rjpeg-parser.ts` is ported from Thermimage.
+- **[Thermimage R package](https://github.com/gtatters/Thermimage)** (gtatters) — Implements `raw2temp()` Planck-temperature conversion and `readflirJPG()` for FLIR JPEG extraction. The raw-to-Celsius formula in `src/planck.rs` is ported from Thermimage.
 - **[FlirImageExtractor](https://github.com/Nervengift/read_thermal.py)** (Nervengift) — Python tool for unpacking FLIR JPEGs via exiftool and PIL. Established the byte-swap pattern for malformed FLIR 16-bit PNG data.
 - **[thermal_parser](https://github.com/SanNianYiSi/thermal_parser)** (SanNianYiSi) — Multi-format Python parser supporting FLIR and DJI cameras. Demonstrated the chunked-APP1 reassembly approach (multiple `0xFFE1` segments per JPEG).
 - **[infiray_irg](https://github.com/jaseg/infiray_irg)** (jaseg) — Python reference implementation of the Infiray IRG binary format, used to validate the IRG parser.
