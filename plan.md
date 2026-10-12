@@ -50,7 +50,7 @@ Every professional thermography software package includes:
 | IRG file parsing | ✅ Multi-variant (C200/C210 0xACCA, Autel, P200 0x04A0, unknown 0x0BB0/0xBAAB with CAAC tail) |
 | Format-agnostic image model | ✅ `ThermalImage` abstraction — parsers produce, viewers consume |
 | Color palettes (9) | ✅ Strong gradient-stop system |
-| Level/span (draggable range bar) | ✅ Single-canvas render with panning gradient strip |
+| Level/span (draggable range bar) | ✅ Colour bar legend with draggable window handles |
 | Spot measurement points | ✅ Click-to-place, draggable rename |
 | Unit conversion (°C/°F) | ✅ |
 | Hover temperature readout | ✅ |
@@ -78,7 +78,7 @@ Every competitor has these. ThermView has none of the critical ones yet.
 | 7 | **Image annotations** | High | ❌ | Text labels, notes attached to the image or report |
 | 8 | **Image rotation & crop** | Medium | ❌ | 90° rotation, free rotation, crop to region of interest |
 | 9 | **Multi-format file support** | — | ✅ DONE | IRG, Hikmicro (Pocket2/SP60), DJI (M2EA) |
-| 10 | **Min/max auto-spot** | — | ✅ DONE | Triangle markers rendered on-canvas with live °C labels |
+| 10 | **Min/max auto-spot** | — | ✅ DONE | Triangle markers drawn on the image with live readings |
 | 11 | **Histogram equalization** | — | ✅ DONE | 1024-bin CDF LUT built at parse-time, consumed by `equalize` scale mode |
 
 ---
@@ -104,18 +104,18 @@ What separates "pro" from "starter" tiers in commercial software.
 
 Strengths to build on:
 
-- **Rendering pipeline is solid** — `createTempCanvas`, palette system with gradient stops, scale modes, overscan, all well-structured
-- **UI is polished** — dark theme, canvas-based range bar, cursor panel, stat pills are professional
-- **TypeScript throughout** — clean type definitions, well-factored into separate modules
-- **`ThermalImage` abstraction** — binary parsers produce a common decoded-IR structure; viewers never touch raw bytes. Adding a new file format means writing one parser function.
+- **Rendering pipeline**: `Look::rgba` in `src/palette.rs` colours the image, the colour bar and the PNG export, so they cannot disagree
+- **Panel UI**: egui with the egui_bench theme, native and WebAssembly from one codebase
+- **Headless testing**: `src/headless.rs` drives the whole app without a window and rasterises it, so UI behaviour is covered by `cargo test`
+- **`ThermalImage` abstraction**: binary parsers produce a common decoded-IR structure; viewers never touch raw bytes. Adding a new file format means writing one parser.
 
 Key architectural changes still needed:
 
-1. **State management** — Currently all state lives in `ThermalViewer`. Adding measurements, annotations, parameter editing, reports, and batch processing will require a store (Zustand or Jotai) or at minimum a context + reducer pattern.
-2. **Undo/redo** — Parameter edits, measurement placement, and annotation changes need undo support.
-3. **Report engine** — Template system → PDF generation (jsPDF or similar).
-4. **Canvas interaction layer** — Currently click-to-add-spot. Need a tool mode system (spot / box / line / polygon / pan / zoom) with drag handles for resize/move of existing shapes.
-5. **Image comparison view** — Side-by-side or overlay with synchronized level/span.
+1. **Document model**: `Doc` in `src/doc.rs` holds the look, points and overlays. Measurement shapes, annotations and reports will extend it.
+2. **Undo/redo**: Parameter edits, measurement placement, and annotation changes need undo support.
+3. **Report engine**: Template system to PDF. `src/export.rs` already rasterises the overlays, which a report can reuse.
+4. **Interaction layer**: Currently click-to-add-spot. Need a tool mode system (spot / box / line / polygon / pan / zoom) with drag handles for resize/move of existing shapes.
+5. **Image comparison view**: Side-by-side or overlay with synchronized level/span.
 
 ---
 
