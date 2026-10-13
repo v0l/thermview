@@ -4,6 +4,9 @@
 
 ThermView reads, renders and measures radiometric thermal images, natively on the desktop or in the browser through WebAssembly. It supports Infiray `.irg` files, Hikmicro JPEGs (Pocket2, SP60), FLIR R-JPEG files (E40, T640, AX8, B60 and others), FLIR AFF `.img` files and DJI R-JPEG files (Mavic 2 Enterprise Advanced). It is written in Rust with [egui](https://github.com/emilk/egui) and the [egui_bench](https://github.com/v0l/egui_bench) panel theme.
 
+Part of the [bench suite](https://github.com/v0l/bench-suite), a launcher that installs, updates
+and starts it alongside the other bench tools.
+
 <p align="center">
   <img src="web/public/favicon.svg" width="64" alt="ThermView icon" />
 </p>
