@@ -6,6 +6,8 @@ All notable changes to thermview are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-14
+
 ### Added
 - Windows `.msi` and macOS `.dmg` installers, with the thermview icon.
 
@@ -27,5 +29,6 @@ First release, as a desktop app in Rust that also runs in the browser.
 - PNG export of the view with its markers and labels, from the app or the command line.
 - Drag and drop a file onto the window.
 
-[Unreleased]: https://github.com/v0l/thermview/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/v0l/thermview/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/v0l/thermview/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/v0l/thermview/releases/tag/v0.1.0
