@@ -118,7 +118,7 @@ fn the_empty_window_offers_to_open_a_file() {
 fn open_shows_the_file_browser_without_waiting_for_more_input() {
     let mut h = Harness::new(1200.0, 800.0);
     h.settle();
-    let at = h.find("open").expect("open button").center();
+    let at = h.find("OPEN").expect("open button").center();
     h.frame(vec![egui::Event::PointerMoved(at)]);
     h.settle();
     h.frame(vec![egui::Event::PointerButton {

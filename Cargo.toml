@@ -2,7 +2,7 @@
 name = "thermview"
 version = "0.1.1"
 edition = "2024"
-rust-version = "1.92"
+rust-version = "1.95"
 license = "MIT"
 description = "Radiometric thermal image viewer: IRG, Hikmicro, DJI and FLIR files"
 repository = "https://github.com/v0l/thermview"
@@ -12,7 +12,7 @@ members = [".", "web"]
 
 [dependencies]
 egui = "0.35"
-egui_bench = "0.2.3"
+egui_bench = "0.5.4"
 png = "0.18"
 kamadak-exif = "0.6.1"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std", "wasmbind"] }

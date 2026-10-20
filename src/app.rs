@@ -127,18 +127,26 @@ impl App {
             let name =
                 self.doc.as_ref().map(|d| d.name.clone()).unwrap_or_else(|| "no file".into());
             Line::new().legend("thermview").value(name).show(ui);
-            if ui.button(action("open")).on_hover_text("open a thermal image, ctrl+O").clicked() {
+            if ui
+                .add(Key::new("open").outline(VALUE))
+                .on_hover_text("open a thermal image, ctrl+O")
+                .clicked()
+            {
                 self.open(&ctx);
             }
             if self.doc.is_some() {
                 if ui
-                    .button(action("export"))
+                    .add(Key::new("export").outline(VALUE))
                     .on_hover_text("save the view with its markers as a PNG, ctrl+E")
                     .clicked()
                 {
                     self.export();
                 }
-                if ui.button(action("clear")).on_hover_text("close this image").clicked() {
+                if ui
+                    .add(Key::new("clear").outline(VALUE))
+                    .on_hover_text("close this image")
+                    .clicked()
+                {
                     self.doc = None;
                     self.path = None;
                     self.texture = None;
@@ -305,7 +313,7 @@ impl App {
                         reading(ui, "flir", "R-JPEG from E, T, A and B series, AFF .img");
                         reading(ui, "dji", "R-JPEG from the Mavic 2 Enterprise Advanced");
                         ui.add_space(6.0);
-                        if ui.button(action("open")).clicked() {
+                        if ui.add(Key::new("open").solid(READOUT)).clicked() {
                             self.open(&ctx);
                         }
                     });
@@ -426,12 +434,16 @@ fn range(ui: &mut Ui, doc: &mut Doc) {
         }
     });
     ui.horizontal_wrapped(|ui| {
-        if ui.button(action("auto")).on_hover_text("fit the window to the file").clicked() {
+        if ui
+            .add(Key::new("auto").outline(VALUE))
+            .on_hover_text("fit the window to the file")
+            .clicked()
+        {
             doc.auto_range();
         }
         for (lo, hi) in PRESETS {
             let (a, b) = (unit.from_celsius(lo).round(), unit.from_celsius(hi).round());
-            if ui.button(action(format!("{a}-{b}"))).clicked() {
+            if ui.add(Key::new(format!("{a}-{b}")).outline(VALUE)).clicked() {
                 doc.look.min = lo as f32;
                 doc.look.max = hi as f32;
             }
@@ -487,11 +499,15 @@ fn points(ui: &mut Ui, doc: &mut Doc) {
                 4.0,
                 POINT_COLOURS[pt.colour % POINT_COLOURS.len()],
             );
-            field_then(ui, &mut pt.label, "name", 110.0, |ui| {
+            field_then(ui, &mut pt.label, "name", 190.0, |ui| {
                 ui.label(
                     egui::RichText::new(unit.reading(readings[i])).font(figure(13.0)).color(TRACE),
                 );
-                if ui.small_button("x").on_hover_text("remove this point").clicked() {
+                if ui
+                    .add(Key::new("remove").outline(VALUE))
+                    .on_hover_text("remove this point")
+                    .clicked()
+                {
                     remove = Some(i);
                 }
             });
@@ -500,7 +516,7 @@ fn points(ui: &mut Ui, doc: &mut Doc) {
     if let Some(i) = remove {
         doc.points.remove(i);
     }
-    if ui.button(action("remove all")).clicked() {
+    if ui.add(Key::new("remove all").outline(FAULT)).clicked() {
         doc.points.clear();
     }
 }
@@ -554,7 +570,10 @@ fn calibration(ui: &mut Ui, doc: &mut Doc) {
     });
     doc.set_params(p);
     if p != doc.source.params
-        && ui.button(action("as shot")).on_hover_text("back to the values in the file").clicked()
+        && ui
+            .add(Key::new("as shot").outline(VALUE))
+            .on_hover_text("back to the values in the file")
+            .clicked()
     {
         doc.set_params(doc.source.params);
     }
