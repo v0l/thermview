@@ -636,7 +636,7 @@ impl App {
                     ui.horizontal(|ui| {
                         status(ui, !fault, &msg);
                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                            if ui.small_button("x").clicked() {
+                            if ui.add(Key::new("dismiss").outline(VALUE)).clicked() {
                                 self.status = None;
                             }
                         });
