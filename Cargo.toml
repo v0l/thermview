@@ -3,7 +3,7 @@ name = "thermview"
 version = "0.1.1"
 edition = "2024"
 rust-version = "1.95"
-license = "MIT"
+license = "GPL-3.0-or-later"
 description = "Radiometric thermal image viewer: IRG, Hikmicro, DJI and FLIR files"
 repository = "https://github.com/v0l/thermview"
 
