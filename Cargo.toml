@@ -12,7 +12,7 @@ members = [".", "web"]
 
 [dependencies]
 egui = "0.37"
-egui_bench = "0.9.1"
+egui_bench = "0.9.2"
 png = "0.18"
 kamadak-exif = "0.6.1"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std", "wasmbind"] }
