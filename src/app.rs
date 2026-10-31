@@ -101,7 +101,7 @@ impl App {
         }
         let dropped = ctx.input(|i| i.raw.dropped_files.first().cloned());
         if let Some(f) = dropped {
-            self.load(ctx, host::dropped(&f));
+            self.load(ctx, host::dropped(f.as_ref()));
         }
         if ctx.input(|i| i.modifiers.command && i.key_pressed(egui::Key::O)) {
             self.open(ctx);

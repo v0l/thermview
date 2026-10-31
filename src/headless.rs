@@ -27,8 +27,8 @@ impl Harness {
         let mut raw = RawInput { screen_rect: Some(self.screen), events, ..Default::default() };
         raw.viewports.entry(ViewportId::ROOT).or_default().native_pixels_per_point = Some(1.0);
         let app = &mut self.app;
-        let out = self.ctx.run_ui(raw, |ui| app.show(ui));
-        self.textures.apply(&out.textures_delta);
+        let mut out = self.ctx.run_ui(raw, |ui| app.show(ui));
+        self.textures.apply(&mut out.textures_delta);
         self.last = Some(out);
     }
 

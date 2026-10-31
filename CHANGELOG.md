@@ -6,6 +6,11 @@ All notable changes to thermview are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-31
+
+### Changed
+- egui and eframe 0.37, which keeps the window running on Wayland when its workspace is hidden.
+
 ## [0.1.1] - 2026-10-14
 
 ### Added

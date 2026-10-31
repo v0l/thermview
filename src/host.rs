@@ -8,20 +8,11 @@ pub struct Loaded {
 pub const SUFFIXES: [&str; 10] =
     [".irg", ".IRG", ".jpg", ".JPG", ".jpeg", ".JPEG", ".img", ".IMG", ".seq", ".SEQ"];
 
-pub fn dropped(file: &egui::DroppedFile) -> Result<Loaded, String> {
-    if let Some(bytes) = &file.bytes {
-        return Ok(Loaded {
-            name: file.name.clone(),
-            bytes: bytes.to_vec(),
-            modified: file.last_modified.and_then(crate::doc::file_stamp),
-            path: None,
-        });
-    }
+pub fn dropped(file: &dyn egui::DroppedFile) -> Result<Loaded, String> {
     #[cfg(not(target_arch = "wasm32"))]
-    if let Some(path) = &file.path {
-        return read(path);
-    }
-    Err(format!("could not read {}", file.name))
+    return read(file.path());
+    #[cfg(target_arch = "wasm32")]
+    Err(format!("could not read {}", file.path().display()))
 }
 
 #[cfg(not(target_arch = "wasm32"))]

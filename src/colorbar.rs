@@ -43,7 +43,7 @@ pub fn ticks(lo: f64, hi: f64, wanted: f64) -> Vec<f64> {
 
 pub fn show(ui: &mut Ui, doc: &mut Doc, height: f32) -> Response {
     let (rect, resp) = ui.allocate_exact_size(vec2(WIDTH, height), Sense::click_and_drag());
-    let id = Id::new("colour-bar");
+    let id = Id::unique("colour-bar");
     let mut drag: Option<Drag> = ui.data(|d| d.get_temp(id));
     let (lo, hi) = drag.map(|d| (d.lo, d.hi)).unwrap_or_else(|| axis(doc));
     let bar = Rect::from_min_size(pos2(rect.left() + LEFT_W, rect.top()), vec2(BAR_W, height));

@@ -8,21 +8,23 @@ pub struct Textures {
 }
 
 impl Textures {
-    pub fn apply(&mut self, delta: &TexturesDelta) {
-        for (id, d) in &delta.set {
-            let egui::ImageData::Color(img) = &d.image;
-            match d.pos {
-                None => {
-                    self.map.insert(*id, (**img).clone());
-                }
-                Some([x0, y0]) => {
-                    let Some(dst) = self.map.get_mut(id) else { continue };
-                    let [w, h] = img.size;
-                    for y in 0..h {
-                        for x in 0..w {
-                            let (dx, dy) = (x0 + x, y0 + y);
-                            if dx < dst.size[0] && dy < dst.size[1] {
-                                dst.pixels[dy * dst.size[0] + dx] = img.pixels[y * w + x];
+    pub fn apply(&mut self, delta: &mut TexturesDelta) {
+        for (id, deltas) in &delta.set {
+            for d in deltas {
+                let egui::ImageData::Color(img) = &d.image;
+                match d.pos {
+                    None => {
+                        self.map.insert(*id, (**img).clone());
+                    }
+                    Some([x0, y0]) => {
+                        let Some(dst) = self.map.get_mut(id) else { continue };
+                        let [w, h] = img.size;
+                        for y in 0..h {
+                            for x in 0..w {
+                                let (dx, dy) = (x0 + x, y0 + y);
+                                if dx < dst.size[0] && dy < dst.size[1] {
+                                    dst.pixels[dy * dst.size[0] + dx] = img.pixels[y * w + x];
+                                }
                             }
                         }
                     }
@@ -32,6 +34,7 @@ impl Textures {
         for id in &delta.free {
             self.map.remove(id);
         }
+        delta.clear();
     }
 }
 

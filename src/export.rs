@@ -14,8 +14,8 @@ pub fn rgba(doc: &Doc) -> (usize, usize, Vec<u8>) {
     for _ in 0..2 {
         let mut raw = RawInput { screen_rect: Some(screen), ..Default::default() };
         raw.viewports.entry(ViewportId::ROOT).or_default().native_pixels_per_point = Some(1.0);
-        let out = ctx.run_ui(raw, |ui| overlay::paint(ui.painter(), screen, doc));
-        textures.apply(&out.textures_delta);
+        let mut out = ctx.run_ui(raw, |ui| overlay::paint(ui.painter(), screen, doc));
+        textures.apply(&mut out.textures_delta);
         last = Some(out);
     }
     let out = last.expect("two passes ran");
