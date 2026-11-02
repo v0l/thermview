@@ -630,18 +630,10 @@ impl App {
             }))
             .show(ui, |ui| self.header(ui));
         if let Some((msg, fault)) = self.status.clone() {
-            egui::Panel::bottom("status")
-                .frame(egui::Frame::NONE.fill(CHASSIS).inner_margin(egui::Margin::symmetric(12, 4)))
-                .show(ui, |ui| {
-                    ui.horizontal(|ui| {
-                        status(ui, !fault, &msg);
-                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                            if ui.add(Key::new("dismiss").outline(VALUE)).clicked() {
-                                self.status = None;
-                            }
-                        });
-                    });
-                });
+            let tone = if fault { Tone::Fault } else { Tone::Ok };
+            if egui_bench::toast::toast(&ctx, "status", &msg, tone) {
+                self.status = None;
+            }
         }
         if self.doc.is_some() {
             egui::Panel::left("controls")
