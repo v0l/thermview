@@ -609,57 +609,33 @@ impl App {
             } else {
                 "playback frame rate"
             });
+            if ui
+                .add(Key::new("−").outline(VALUE))
+                .on_hover_text("zoom out around the playhead")
+                .clicked()
+            {
+                video.view.zoom(0.5, video.current);
+            }
+            if ui
+                .add(Key::new("+").outline(VALUE))
+                .on_hover_text("zoom in around the playhead")
+                .clicked()
+            {
+                video.view.zoom(2.0, video.current);
+            }
+            if ui
+                .add(Key::new("fit").outline(VALUE))
+                .on_hover_text("show the entire video")
+                .clicked()
+            {
+                video.view.fit();
+            }
         });
         ui.add_space(4.0);
-        let (rect, response) =
-            ui.allocate_exact_size(vec2(ui.available_width(), 48.0), Sense::click_and_drag());
-        let track = rect.shrink2(vec2(8.0, 0.0));
-        if (response.clicked() || response.dragged())
-            && let Some(at) = response.interact_pointer_pos()
-        {
-            let fraction = ((at.x - track.left()) / track.width().max(1.0)).clamp(0.0, 1.0);
-            target = (fraction as f64 * (video.len() - 1) as f64).round() as usize;
+        if let Some(frame) = crate::timeline::show(ui, &mut video.view, video.current) {
+            target = frame;
             video.playing = false;
         }
-        let p = ui.painter();
-        p.rect_filled(rect, 2.0, WELL);
-        for tick in 0..=10 {
-            let fraction = tick as f32 / 10.0;
-            let x = track.left() + track.width() * fraction;
-            p.line_segment(
-                [pos2(x, rect.top() + 19.0), pos2(x, rect.bottom() - 5.0)],
-                Stroke::new(1.0, ETCH),
-            );
-            let frame = (fraction as f64 * (video.len() - 1) as f64).round() as usize;
-            p.text(
-                pos2(x, rect.top() + 4.0),
-                if tick == 10 { Align2::RIGHT_TOP } else { Align2::LEFT_TOP },
-                format!("{}", frame + 1),
-                figure(10.0),
-                VALUE,
-            );
-        }
-        let fraction = target as f32 / (video.len() - 1).max(1) as f32;
-        let x = track.left() + track.width() * fraction;
-        p.rect_filled(
-            Rect::from_min_max(pos2(track.left(), rect.top() + 27.0), pos2(x, rect.bottom() - 5.0)),
-            0.0,
-            READOUT.gamma_multiply(0.18),
-        );
-        p.line_segment(
-            [pos2(x, rect.top() + 17.0), pos2(x, rect.bottom())],
-            Stroke::new(2.0, READOUT),
-        );
-        p.add(egui::Shape::convex_polygon(
-            vec![
-                pos2(x - 5.0, rect.top() + 17.0),
-                pos2(x + 5.0, rect.top() + 17.0),
-                pos2(x, rect.top() + 23.0),
-            ],
-            READOUT,
-            Stroke::NONE,
-        ));
-        response.on_hover_text("drag to scrub · Left / Right to step · Space to play");
         if let Err(e) = doc.seek(target) {
             self.fail(e.to_string());
         }

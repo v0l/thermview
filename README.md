@@ -59,7 +59,7 @@ thermview render photo.jpg -o out.png --palette iron --scale 4 --range 20:40 --p
 Linux releases include `thermview_VERSION_amd64.deb` and `thermview_VERSION_arm64.deb`. Download the package for your machine and install it with:
 
 ```bash
-sudo apt install ./thermview_0.1.6-1_amd64.deb
+sudo apt install ./thermview_0.1.7-1_amd64.deb
 ```
 
 This installs the `thermview` command, a ThermView app-menu entry, its icon and CSQ/IRG file associations. Open it from the app menu or use **Open With → ThermView** on a CSQ file. Remove it with `sudo apt remove thermview`.
@@ -78,6 +78,8 @@ The `.deb` and its SHA-256 checksum are written to `dist/`. Build natively on x8
 ### CSQ videos
 
 Open or drop a `.csq` file in the desktop app. A compact timeline appears at the bottom only for videos. Drag anywhere on its ruler to scrub; use the transport buttons or **Left/Right** to step a frame, **Home/End** to jump to the ends, and **Space** to play or pause. Playback stops at the last frame.
+
+The zoom scroll bar below the ruler shows which part of the whole recording is visible. Drag either end inward to zoom in, outward to zoom out, or drag its middle to pan without moving the playhead. Scroll the mouse wheel over it or use **+ / −** to zoom around the playhead. **Fit** or a double-click on the zoom scroll bar shows the full recording again. The **View** label gives the visible frame range, and scrubbing the ruler selects frames within that range. Playback and frame stepping keep the current frame visible while preserving the zoom level.
 
 Min/max markers, spot readings and the temperature range update for the displayed frame. **Auto range** fits the palette to each frame; turn it off to use one temperature window across the clip. Palette, units and measurement points persist while scrubbing. Export saves the current frame with its frame number in the PNG filename.
 

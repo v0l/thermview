@@ -14,6 +14,7 @@ pub struct Video {
     pub playing: bool,
     pub auto_range: bool,
     pub last_tick: Option<f64>,
+    pub view: crate::timeline::TimelineView,
 }
 
 impl Video {
@@ -49,7 +50,9 @@ impl Video {
         if frames.is_empty() {
             return Err(Error::new("CSQ contains no FFF thermal frames"));
         }
+        let view = crate::timeline::TimelineView::new(frames.len());
         Ok(Self {
+            view,
             bytes,
             frames,
             fps: fps.unwrap_or(30.0),

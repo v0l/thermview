@@ -89,7 +89,9 @@ impl Doc {
         self.source = source;
         self.points.retain(|p| p.x < self.image.width && p.y < self.image.height);
         let auto_range = video.auto_range;
-        self.video.as_mut().unwrap().current = index;
+        let video = self.video.as_mut().unwrap();
+        video.current = index;
+        video.view.reveal(index);
         self.revision += 1;
         if auto_range {
             self.auto_range();

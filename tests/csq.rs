@@ -142,6 +142,7 @@ fn video_controls_scrub_and_disappear_when_an_image_is_opened() {
     h.settle();
     assert!(h.find("PLAY").is_none());
     assert!(h.find("FRAME 2 / 2").is_none());
+    assert!(!h.texts().iter().any(|(text, _)| text.starts_with("VIEW ")));
 }
 
 #[test]
@@ -197,4 +198,123 @@ fn every_frame_of_real_camera_recording_decodes() {
         video.frame(index).unwrap();
     }
     println!("All {} frames decoded successfully", video.len());
+}
+
+fn zoom_harness() -> Harness {
+    let bytes: Vec<u8> = (0..101)
+        .flat_map(|index| {
+            let counts: Vec<u16> = (0..48).map(|i| 14000 + index * 20 + i * 10).collect();
+            frame(&counts, true)
+        })
+        .collect();
+    let mut h = Harness::new(1500.0, 950.0);
+    h.settle();
+    h.app.load(
+        &h.ctx.clone(),
+        Ok(Loaded { name: "zoom.csq".into(), bytes, modified: None, path: None }),
+    );
+    h.settle();
+    h
+}
+
+#[test]
+fn navigator_handles_zoom_and_middle_pans_without_seeking() {
+    let mut h = zoom_harness();
+    let nav_y = h.find("VIEW 1–101").unwrap().top() - 18.0;
+    h.drag(egui::pos2(1475.0, nav_y), egui::pos2(760.0, nav_y));
+    let video = h.app.doc.as_ref().unwrap().video.as_ref().unwrap();
+    assert_eq!(video.current, 0, "resizing the view must not seek");
+    assert!((35..65).contains(&video.view.last()), "right handle must zoom: {:?}", video.view);
+    assert_eq!(video.view.first(), 0);
+    h.drag(egui::pos2(25.0, nav_y), egui::pos2(200.0, nav_y));
+    let video = h.app.doc.as_ref().unwrap().video.as_ref().unwrap();
+    let before = video.view;
+    assert!(before.first() > 0, "left handle must move the range start");
+    let center = 20.0 + 1460.0 * (before.first() + before.last()) as f32 / 200.0;
+    h.drag(egui::pos2(center, nav_y), egui::pos2(center + 180.0, nav_y));
+    let video = h.app.doc.as_ref().unwrap().video.as_ref().unwrap();
+    assert_eq!(video.current, 0, "panning must leave the displayed frame alone");
+    assert_eq!(video.view.span(), before.span(), "panning must preserve zoom");
+    assert!(video.view.first() > before.first());
+    let range = video.view;
+    // Tick labels are in the detailed ruler above the navigator.
+    let ruler_y = h.find(&(range.first() + 1).to_string()).unwrap().center().y + 24.0;
+    h.click(egui::pos2(750.0, ruler_y));
+    let doc = h.app.doc.as_ref().unwrap();
+    let video = doc.video.as_ref().unwrap();
+    let midpoint = (range.first() + range.last()) / 2;
+    assert!(video.current.abs_diff(midpoint) <= 1, "scrubbing must map to the visible range");
+    assert_eq!(video.view, range);
+    let extrema = format!(
+        "MIN {}    MAX {}",
+        doc.unit.reading(doc.image.stats.min.celsius),
+        doc.unit.reading(doc.image.stats.max.celsius)
+    );
+    assert!(
+        h.find(&extrema).is_some(),
+        "per-frame temperatures must update after zoomed scrubbing"
+    );
+    std::fs::write(std::path::Path::new(env!("CARGO_TARGET_TMPDIR")).join("csq-zoom.png"), h.png())
+        .unwrap();
+    h.click(h.find("FIT").unwrap().center());
+    let video = h.app.doc.as_ref().unwrap().video.as_ref().unwrap();
+    assert_eq!((video.view.first(), video.view.last()), (0, 100));
+    assert!(video.current.abs_diff(midpoint) <= 1, "Fit must not seek");
+}
+
+#[test]
+fn zoom_buttons_and_wheel_do_not_seek_and_transport_keeps_zoom() {
+    let mut h = zoom_harness();
+    h.click(h.find("+").unwrap().center());
+    let video = h.app.doc.as_ref().unwrap().video.as_ref().unwrap();
+    assert_eq!(video.current, 0);
+    assert_eq!(video.view.span(), 50);
+    let label = format!("VIEW {}–{}", video.view.first() + 1, video.view.last() + 1);
+    let nav_y = h.find(&label).unwrap().top() - 18.0;
+    h.frame(vec![
+        egui::Event::PointerMoved(egui::pos2(400.0, nav_y)),
+        egui::Event::MouseWheel {
+            unit: egui::MouseWheelUnit::Point,
+            phase: egui::TouchPhase::Move,
+            source: egui::MouseWheelSource::Unknown,
+            delta: egui::vec2(0.0, 120.0),
+            modifiers: egui::Modifiers::NONE,
+        },
+    ]);
+    h.settle();
+    let video = h.app.doc.as_ref().unwrap().video.as_ref().unwrap();
+    assert!(video.view.span() < 50, "wheel must zoom the navigator");
+    assert_eq!(video.current, 0);
+    let span = video.view.span();
+    h.click(h.find(">|").unwrap().center());
+    let video = h.app.doc.as_ref().unwrap().video.as_ref().unwrap();
+    assert_eq!(video.current, 100);
+    assert_eq!(video.view.last(), 100);
+    assert_eq!(video.view.span(), span, "transport follows the frame without resetting zoom");
+    h.click(h.find("FIT").unwrap().center());
+    assert_eq!(h.app.doc.as_ref().unwrap().video.as_ref().unwrap().view.span(), 100);
+}
+
+#[test]
+fn maximum_zoom_stays_precise_and_new_video_resets_the_view() {
+    let mut h = zoom_harness();
+    for _ in 0..8 {
+        h.click(h.find("+").unwrap().center());
+    }
+    let view = h.app.doc.as_ref().unwrap().video.as_ref().unwrap().view;
+    assert_eq!(view.span(), 1);
+    let y = h.find("1").unwrap().center().y + 24.0;
+    h.click(egui::pos2(1475.0, y));
+    assert_eq!(
+        h.app.doc.as_ref().unwrap().video.as_ref().unwrap().current,
+        1,
+        "full-width scrub at maximum zoom should step exactly one frame"
+    );
+    h.app.load(
+        &h.ctx.clone(),
+        Ok(Loaded { name: "new.csq".into(), bytes: sequence(), modified: None, path: None }),
+    );
+    h.settle();
+    let video = h.app.doc.as_ref().unwrap().video.as_ref().unwrap();
+    assert_eq!((video.view.first(), video.view.last(), video.current), (0, 1, 0));
 }

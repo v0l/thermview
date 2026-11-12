@@ -6,6 +6,13 @@ All notable changes to thermview are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-11-12
+
+### Added
+- A Premiere-style zoom scroll bar below the video ruler: drag its handles to change the visible frame range, or its middle to pan without seeking.
+- Playhead-anchored wheel and button zoom, Fit and double-click reset, and adaptive frame ticks for precise zoomed scrubbing.
+- Playback and stepping keep the playhead visible without resetting timeline zoom.
+
 ## [0.1.6] - 2026-11-12
 
 ### Fixed

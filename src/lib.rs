@@ -14,6 +14,7 @@ pub mod overlay;
 pub mod palette;
 pub mod planck;
 pub mod raster;
+pub mod timeline;
 pub mod video;
 
 pub use formats::parse;
