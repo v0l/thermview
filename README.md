@@ -4,8 +4,7 @@
 
 ThermView reads, renders and measures radiometric thermal images, natively on the desktop or in the browser through WebAssembly. It supports Infiray `.irg` files, Hikmicro JPEGs (Pocket2, SP60), FLIR R-JPEG files (E40, T640, AX8, B60 and others), FLIR AFF `.img` files and DJI R-JPEG files (Mavic 2 Enterprise Advanced). It is written in Rust with [egui](https://github.com/emilk/egui) and the [egui_bench](https://github.com/v0l/egui_bench) panel theme.
 
-Part of the [bench suite](https://github.com/v0l/bench-suite), a launcher that installs, updates
-and starts it alongside the other bench tools.
+This is a fork of [v0l/thermview](https://github.com/v0l/thermview). Use this fork's installers or source instructions below for its CSQ playback and range-measurement features. Launchers configured for the upstream project may install the original version instead.
 
 <p align="center">
   <img src="web/public/favicon.svg" width="64" alt="ThermView icon" />
@@ -34,12 +33,108 @@ and starts it alongside the other bench tools.
 | **Metadata** | EXIF make, model, lens, software, serial, capture time and GPS |
 | **Drag and drop** | Drop a file onto the window, native or web |
 
-## Getting Started
+## Installation
 
-Needs Rust 1.95 or newer. Desktop builds also need CMake and a C++ compiler to build the bundled CharLS JPEG-LS decoder.
+ThermView targets Linux, Windows and macOS. The `sudo apt install` command is **only for Debian/Ubuntu**; each operating system uses its own installer. Prebuilt installers do not need Rust, CMake, FFmpeg or FLIR software.
+
+Download the appropriate file from **[this fork's GitHub Releases](https://github.com/alfiethology/thermview/releases)**:
+
+| Computer | Installer produced by the release workflow |
+|---|---|
+| Debian/Ubuntu, Intel or AMD 64-bit | `thermview_VERSION_amd64.deb` |
+| Debian/Ubuntu, ARM64 | `thermview_VERSION_arm64.deb` |
+| Windows, Intel or AMD 64-bit | `thermview-x86_64-pc-windows-msvc.msi` |
+| macOS, Apple silicon (M-series) | `thermview-aarch64-apple-darwin.dmg` |
+| macOS, Intel | `thermview-x86_64-apple-darwin.dmg` |
+
+**Installer availability:** merging changes into `master` does not publish downloads. The [release workflow](.github/workflows/release.yml) builds these packages when a version tag such as `v0.1.8` is pushed. A manual workflow run produces downloadable Actions artifacts, but does not publish a GitHub Release. If the release you need is not listed, use the source-install instructions below. Linux has been built and tested in this workspace. The Windows/macOS configuration is present, but native build and runtime verification on those platforms has not been performed here.
+
+### Debian / Ubuntu
+
+From the folder containing the downloaded `.deb`, run:
 
 ```bash
-git clone https://github.com/v0l/thermview.git
+sudo apt install ./thermview_0.1.8-1_amd64.deb
+```
+
+For ARM64, use the corresponding `_arm64.deb` file. This installs the `thermview` command, an app-menu entry, an icon and CSQ/IRG file associations. Open **ThermView** from the app menu or run:
+
+```bash
+thermview
+thermview --version
+```
+
+Installing a newer `.deb` with the same command upgrades the existing package. Close the app before updating, then reopen it. Remove it with `sudo apt remove thermview`.
+
+If an older launcher-managed installation is also present, `~/.local/bin/thermview` or a personal `~/.local/share/applications/thermview.desktop` can take precedence over the Debian installation. Run `/usr/bin/thermview` to select the Debian binary explicitly. Remove the obsolete installation or update its shortcut to use that path. After removing an old executable, run `hash -r` in an existing Bash terminal or open a new terminal to clear its cached path.
+
+Packages built locally on a newer distribution may require newer system libraries. Release packages are configured to build on Ubuntu 22.04 runners; the dependency requirements are recorded in each `.deb`.
+
+### Windows
+
+1. Download `thermview-x86_64-pc-windows-msvc.msi` from this fork's Releases.
+2. Double-click it and follow the installer, approving the administrator prompt when requested.
+3. Open **ThermView** from the Start menu.
+
+Alternatively, from PowerShell in the download folder, open the installer with:
+
+```powershell
+msiexec.exe /i ".\thermview-x86_64-pc-windows-msvc.msi"
+```
+
+The MSI installs to `C:\Program Files\ThermView` and creates a Start-menu shortcut. It currently does **not** add `thermview` to `PATH`. To launch it or check its version from PowerShell, use:
+
+```powershell
+& "$env:ProgramFiles\ThermView\thermview.exe"
+& "$env:ProgramFiles\ThermView\thermview.exe" --version
+```
+
+Run the newer MSI to upgrade the existing MSI installation. Portable `.zip` downloads are also produced; use either the MSI installation or a portable copy to avoid launching an older copy accidentally. Remove the MSI installation through **Settings → Apps → Installed apps**.
+
+The installer command uses Windows Installer's documented [`msiexec /i` option](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/msiexec).
+
+### macOS
+
+1. Download the `.dmg` matching your Mac: `aarch64-apple-darwin` for Apple silicon or `x86_64-apple-darwin` for Intel. **About This Mac** shows which processor you have.
+2. Open the `.dmg` and drag **ThermView.app** onto **Applications**.
+3. Eject the disk image and launch **ThermView** from Applications.
+
+To launch it from Terminal:
+
+```bash
+open -a ThermView
+```
+
+The app bundle currently does **not** install a `thermview` command on `PATH`. Its executable can be used directly:
+
+```bash
+/Applications/ThermView.app/Contents/MacOS/thermview --version
+```
+
+To update, quit ThermView and replace the existing app in Applications with the newer copy. Remove the installed app by moving `/Applications/ThermView.app` to the Trash.
+
+The workflow currently uses ad-hoc signing rather than Apple Developer ID signing and notarization. If macOS blocks the downloaded app, review [Apple's instructions for opening an app that has not been notarized](https://support.apple.com/102445); the per-app approval is under **System Settings → Privacy & Security → Open Anyway** after attempting to open it.
+
+### Install from source on Linux, Windows or macOS
+
+Install **Rust 1.95 or newer**, **CMake**, and a **C++ compiler** first. The C++ tools build the bundled CharLS JPEG-LS decoder used for CSQ files.
+
+- **Debian/Ubuntu:** install the native build dependencies with `sudo apt install build-essential cmake pkg-config libwayland-dev libxkbcommon-dev`.
+- **Windows:** install Visual Studio Build Tools with **Desktop development with C++** and a Windows SDK, plus CMake. Use the Rust MSVC toolchain and a terminal where the C++ tools and CMake are available.
+- **macOS:** install Xcode Command Line Tools (`xcode-select --install`) and CMake.
+
+Once those prerequisites are installed, use the same Cargo command on each platform to build and install the current version from this fork:
+
+```sh
+cargo install --git https://github.com/alfiethology/thermview.git --branch master --locked thermview
+```
+
+This installs the executable in Cargo's bin directory (normally `~/.cargo/bin`, or `%USERPROFILE%\.cargo\bin` on Windows). With that directory on `PATH`, run `thermview` or `thermview --version`. Source installation does not create the desktop shortcuts provided by the installers. To update a source installation, rerun the command with `--force`; to remove it, use `cargo uninstall thermview`. Avoid keeping a Cargo-installed copy alongside a system installer unless you deliberately manage which executable is on `PATH`.
+
+For local development instead:
+
+```bash
+git clone https://github.com/alfiethology/thermview.git
 cd thermview
 cargo run --release                 # open the viewer
 cargo run --release -- photo.jpg    # open the viewer with a file
@@ -54,26 +149,16 @@ thermview render photo.jpg -o out.png --palette iron --scale 4 --range 20:40 --p
 
 `render` takes `--fahrenheit`, `--mapping linear|log|equalise`, `--overscan clip|hide|below|above`, `--invert`, `--bare` (no overlays) and any number of `--point X,Y`.
 
-### Debian / Ubuntu installer
+### Build a Debian installer locally
 
-Linux releases include `thermview_VERSION_amd64.deb` and `thermview_VERSION_arm64.deb`. Download the package for your machine and install it with:
-
-```bash
-sudo apt install ./thermview_0.1.8-1_amd64.deb
-```
-
-This installs the `thermview` command, a ThermView app-menu entry, its icon and CSQ/IRG file associations. Open it from the app menu or use **Open With → ThermView** on a CSQ file. Remove it with `sudo apt remove thermview`.
-
-If an older launcher-managed installation is also present, `~/.local/bin/thermview` or a personal `~/.local/share/applications/thermview.desktop` can take precedence over the Debian installation. Run `/usr/bin/thermview` to select the Debian binary explicitly, and update any personal launcher to use that path. The packaged desktop entry uses the absolute path.
-
-To build a package locally on Debian or Ubuntu, install Rust 1.95+ plus the packaging tools:
+On Debian/Ubuntu, install Rust and the packaging dependencies, then run the packaging script from a checkout of this fork:
 
 ```bash
 sudo apt install build-essential cmake pkg-config libwayland-dev libxkbcommon-dev dpkg-dev python3
 packaging/linux/build-deb.sh
 ```
 
-The `.deb` and its SHA-256 checksum are written to `dist/`. Build natively on x86-64 for `amd64`, or ARM64 for `arm64`. To package an existing release binary, set `THERMVIEW_BINARY=/path/to/thermview` before running the script. Shared-library version requirements are calculated from that binary, so build on the oldest distribution you want to support. The release workflow uses Ubuntu 22.04 runners; a package built locally on a newer distribution may require newer libraries.
+The `.deb` and its SHA-256 checksum are written to `dist/`. Build natively on x86-64 for `amd64`, or ARM64 for `arm64`. To package an existing release binary, set `THERMVIEW_BINARY=/path/to/thermview` before running the script. Shared-library version requirements are calculated from that binary, so build on the oldest distribution you want to support.
 
 ### CSQ videos
 
