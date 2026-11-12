@@ -8,6 +8,7 @@ pub enum Format {
     Dji,
     FlirAff,
     FlirJpeg,
+    FlirCsq,
 }
 
 impl Format {
@@ -18,6 +19,7 @@ impl Format {
             Format::Dji => "DJI R-JPEG",
             Format::FlirAff => "FLIR AFF",
             Format::FlirJpeg => "FLIR R-JPEG",
+            Format::FlirCsq => "FLIR CSQ",
         }
     }
 }

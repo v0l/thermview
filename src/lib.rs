@@ -3,15 +3,20 @@ pub mod bytes;
 pub mod colorbar;
 pub mod doc;
 pub mod exif;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod explorer;
 pub mod export;
 pub mod formats;
 pub mod headless;
 pub mod host;
 pub mod image;
+pub mod measure;
 pub mod overlay;
 pub mod palette;
 pub mod planck;
 pub mod raster;
+pub mod timeline;
+pub mod video;
 
 pub use formats::parse;
 pub use image::ThermalImage;

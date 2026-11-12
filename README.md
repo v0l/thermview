@@ -4,8 +4,7 @@
 
 ThermView reads, renders and measures radiometric thermal images, natively on the desktop or in the browser through WebAssembly. It supports Infiray `.irg` files, Hikmicro JPEGs (Pocket2, SP60), FLIR R-JPEG files (E40, T640, AX8, B60 and others), FLIR AFF `.img` files and DJI R-JPEG files (Mavic 2 Enterprise Advanced). It is written in Rust with [egui](https://github.com/emilk/egui) and the [egui_bench](https://github.com/v0l/egui_bench) panel theme.
 
-Part of the [bench suite](https://github.com/v0l/bench-suite), a launcher that installs, updates
-and starts it alongside the other bench tools.
+This is a fork of [v0l/thermview](https://github.com/v0l/thermview). Use this fork's installers or source instructions below for its CSQ playback and range-measurement features. Launchers configured for the upstream project may install the original version instead.
 
 <p align="center">
   <img src="web/public/favicon.svg" width="64" alt="ThermView icon" />
@@ -18,6 +17,7 @@ and starts it alongside the other bench tools.
 | Feature | Description |
 |---|---|
 | **Multi-format parsing** | Detects IRG, Hikmicro JPEG, FLIR R-JPEG, FLIR AFF and DJI R-JPEG from the bytes. Every parser returns the same `ThermalImage`, so a new format is one parser. |
+| **CSQ video (desktop)** | Open FLIR `.csq` sequences, scrub a bottom timeline, step frames and play/pause with live min/max temperatures |
 | **9 colour palettes** | Inferno, Iron, Jet, Hot, Lava, Plasma, Rainbow, Arctic, Grayscale, with inversion |
 | **Colour bar** | A legend painted from the same colour function as the image, with draggable window handles, ticks in the chosen unit and the out-of-window part dimmed |
 | **Mappings** | Linear, logarithmic and histogram equalisation (1024-bin CDF, rescaled to the window) |
@@ -33,12 +33,145 @@ and starts it alongside the other bench tools.
 | **Metadata** | EXIF make, model, lens, software, serial, capture time and GPS |
 | **Drag and drop** | Drop a file onto the window, native or web |
 
-## Getting Started
+## Installation
 
-Needs Rust 1.92 or newer.
+ThermView targets Linux, Windows and macOS. The `sudo apt install` command is **only for Debian/Ubuntu**; each operating system uses its own installer. Prebuilt installers do not need Rust, CMake, FFmpeg or FLIR software.
+
+Download the appropriate file from **[this fork's GitHub Releases](https://github.com/alfiethology/thermview/releases)**:
+
+| Computer | Installer produced by the release workflow |
+|---|---|
+| Debian/Ubuntu, Intel or AMD 64-bit | `thermview_VERSION_amd64.deb` |
+| Debian/Ubuntu, ARM64 | `thermview_VERSION_arm64.deb` |
+| Arch Linux and Arch-based distributions | Use the source-install instructions below; `.deb` is not an Arch package |
+| Windows, Intel or AMD 64-bit | `thermview-x86_64-pc-windows-msvc.msi` |
+| macOS, Apple silicon (M-series) | `thermview-aarch64-apple-darwin.dmg` |
+| macOS, Intel | `thermview-x86_64-apple-darwin.dmg` |
+
+**Installer availability:** merging changes into `master` does not publish downloads. The [release workflow](.github/workflows/release.yml) builds these packages when a version tag such as `v0.1.8` is pushed. A manual workflow run produces downloadable Actions artifacts, but does not publish a GitHub Release. If the release you need is not listed, use the source-install instructions below. Linux has been built and tested in this workspace. A successful Windows build confirms compilation and installer creation, but running the app on a Windows machine still needs verification; macOS needs a completed native build and runtime verification.
+
+### Debian / Ubuntu
+
+From the folder containing the downloaded `.deb`, run:
 
 ```bash
-git clone https://github.com/v0l/thermview.git
+sudo apt install ./thermview_0.1.9-1_amd64.deb
+```
+
+For ARM64, use the corresponding `_arm64.deb` file. This installs the `thermview` command, an app-menu entry, an icon and CSQ/IRG file associations. Open **ThermView** from the app menu or run:
+
+```bash
+thermview
+thermview --version
+```
+
+Installing a newer `.deb` with the same command upgrades the existing package. Close the app before updating, then reopen it. Remove it with `sudo apt remove thermview`.
+
+If an older launcher-managed installation is also present, `~/.local/bin/thermview` or a personal `~/.local/share/applications/thermview.desktop` can take precedence over the Debian installation. Run `/usr/bin/thermview` to select the Debian binary explicitly. Remove the obsolete installation or update its shortcut to use that path. After removing an old executable, run `hash -r` in an existing Bash terminal or open a new terminal to clear its cached path.
+
+Packages built locally on a newer distribution may require newer system libraries. Release packages are configured to build on Ubuntu 22.04 runners; the dependency requirements are recorded in each `.deb`.
+
+### Arch Linux / Arch-based distributions
+
+**The `.deb` is for Debian-based distributions, not Arch.** Arch uses `pacman` and a different package format and dependency names. This repository does not currently publish an Arch package or AUR recipe. Use the source-install commands below.
+
+On an up-to-date Arch installation, install the build tools and desktop libraries:
+
+```bash
+sudo pacman -Syu --needed base-devel rust cmake git pkgconf \
+  wayland libxkbcommon libxkbcommon-x11 libx11 libxcb libxcursor libxi libxrandr \
+  libglvnd vulkan-icd-loader
+```
+
+Then build and install this fork's released version as your normal user:
+
+```bash
+cargo install --git https://github.com/alfiethology/thermview.git --tag v0.1.8 --locked thermview
+export PATH="$HOME/.cargo/bin:$PATH"
+thermview --version
+thermview
+```
+
+The first build can take several minutes. The executable is installed in `~/.cargo/bin`, rather than being managed by `pacman`. Keep that directory on your shell's `PATH` for new terminals. This source install does not create an app-menu shortcut. To update, replace the version tag with a newer release and add `--force`; to remove it, run `cargo uninstall thermview`. These commands have not been run in a native Arch environment here.
+
+See the [pacman manual](https://man.archlinux.org/man/pacman.8.en) for Arch's package-management commands. Fedora, openSUSE and other non-Debian distributions should also use their own native packages or build from source with their distribution's dependency names; the `.deb` is not a universal Linux installer.
+
+### Windows
+
+1. Open [this fork's Releases](https://github.com/alfiethology/thermview/releases) and expand **Assets** for the version you want.
+2. Download `thermview-x86_64-pc-windows-msvc.msi` (not **Source code**).
+3. Double-click it and follow the installer, approving the administrator prompt when requested.
+4. Open **ThermView** from the Start menu.
+
+**If the release has no installer attached:** a successful Windows job may already have uploaded one as an Actions artifact even when a different platform prevented release publishing:
+
+1. Sign in to GitHub and open [Actions → release](https://github.com/alfiethology/thermview/actions/workflows/release.yml).
+2. Open the run for your version and confirm its Windows build succeeded.
+3. Under **Artifacts** on the run's summary page, download `thermview-x86_64-pc-windows-msvc`.
+4. Extract that downloaded artifact ZIP, then double-click the `.msi` inside it.
+
+For the initial `v0.1.8` build, the Windows installer was successfully created in [this run](https://github.com/alfiethology/thermview/actions/runs/43262518961); release publishing was skipped after the macOS jobs were cancelled. Actions artifacts expire, so use Release assets when available. GitHub requires a signed-in account with repository read access to [download workflow artifacts](https://docs.github.com/en/actions/managing-workflow-runs/downloading-workflow-artifacts).
+
+Alternatively, from PowerShell in the download folder, open the installer with:
+
+```powershell
+msiexec.exe /i ".\thermview-x86_64-pc-windows-msvc.msi"
+```
+
+The MSI installs to `C:\Program Files\ThermView` and creates a Start-menu shortcut. It currently does **not** add `thermview` to `PATH`. To launch it or check its version from PowerShell, use:
+
+```powershell
+& "$env:ProgramFiles\ThermView\thermview.exe"
+& "$env:ProgramFiles\ThermView\thermview.exe" --version
+```
+
+Run the newer MSI to upgrade the existing MSI installation. Portable `.zip` downloads are also produced; use either the MSI installation or a portable copy to avoid launching an older copy accidentally. Remove the MSI installation through **Settings → Apps → Installed apps**.
+
+The installer command uses Windows Installer's documented [`msiexec /i` option](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/msiexec).
+
+### macOS
+
+1. Download the `.dmg` matching your Mac: `aarch64-apple-darwin` for Apple silicon or `x86_64-apple-darwin` for Intel. **About This Mac** shows which processor you have.
+2. Open the `.dmg` and drag **ThermView.app** onto **Applications**.
+3. Eject the disk image and launch **ThermView** from Applications.
+
+To launch it from Terminal:
+
+```bash
+open -a ThermView
+```
+
+The app bundle currently does **not** install a `thermview` command on `PATH`. Its executable can be used directly:
+
+```bash
+/Applications/ThermView.app/Contents/MacOS/thermview --version
+```
+
+To update, quit ThermView and replace the existing app in Applications with the newer copy. Remove the installed app by moving `/Applications/ThermView.app` to the Trash.
+
+The workflow currently uses ad-hoc signing rather than Apple Developer ID signing and notarization. If macOS blocks the downloaded app, review [Apple's instructions for opening an app that has not been notarized](https://support.apple.com/102445); the per-app approval is under **System Settings → Privacy & Security → Open Anyway** after attempting to open it.
+
+### Install from source on Linux, Windows or macOS
+
+Install **Rust 1.95 or newer**, **CMake**, and a **C++ compiler** first. The C++ tools build the bundled CharLS JPEG-LS decoder used for CSQ files.
+
+- **Debian/Ubuntu:** install the native build dependencies with `sudo apt install build-essential cmake pkg-config libwayland-dev libxkbcommon-dev`.
+- **Arch Linux:** use the `pacman` dependencies and source-install commands in the Arch section above.
+- **Windows:** install Visual Studio Build Tools with **Desktop development with C++** and a Windows SDK, plus CMake. Use the Rust MSVC toolchain and a terminal where the C++ tools and CMake are available.
+- **macOS:** install Xcode Command Line Tools (`xcode-select --install`) and CMake.
+
+Once those prerequisites are installed, use the same Cargo command on each platform to build and install the current version from this fork:
+
+```sh
+cargo install --git https://github.com/alfiethology/thermview.git --branch master --locked thermview
+```
+
+This installs the executable in Cargo's bin directory (normally `~/.cargo/bin`, or `%USERPROFILE%\.cargo\bin` on Windows). With that directory on `PATH`, run `thermview` or `thermview --version`. Source installation does not create the desktop shortcuts provided by the installers. To update a source installation, rerun the command with `--force`; to remove it, use `cargo uninstall thermview`. Avoid keeping a Cargo-installed copy alongside a system installer unless you deliberately manage which executable is on `PATH`.
+
+For local development instead:
+
+```bash
+git clone https://github.com/alfiethology/thermview.git
 cd thermview
 cargo run --release                 # open the viewer
 cargo run --release -- photo.jpg    # open the viewer with a file
@@ -52,6 +185,35 @@ thermview render photo.jpg -o out.png --palette iron --scale 4 --range 20:40 --p
 ```
 
 `render` takes `--fahrenheit`, `--mapping linear|log|equalise`, `--overscan clip|hide|below|above`, `--invert`, `--bare` (no overlays) and any number of `--point X,Y`.
+
+### Build a Debian installer locally
+
+On Debian/Ubuntu, install Rust and the packaging dependencies, then run the packaging script from a checkout of this fork:
+
+```bash
+sudo apt install build-essential cmake pkg-config libwayland-dev libxkbcommon-dev dpkg-dev python3
+packaging/linux/build-deb.sh
+```
+
+The `.deb` and its SHA-256 checksum are written to `dist/`. Build natively on x86-64 for `amd64`, or ARM64 for `arm64`. To package an existing release binary, set `THERMVIEW_BINARY=/path/to/thermview` before running the script. Shared-library version requirements are calculated from that binary, so build on the oldest distribution you want to support.
+
+### CSQ videos
+
+Open or drop a `.csq` file in the desktop app. A compact timeline appears at the bottom only for videos. Drag anywhere on its ruler to scrub; use the transport buttons or **Left/Right** to step a frame, **Home/End** to jump to the ends, and **Space** to play or pause. Playback stops at the last frame.
+
+The zoom scroll bar below the ruler shows which part of the whole recording is visible. Drag either end inward to zoom in, outward to zoom out, or drag its middle to pan without moving the playhead. Scroll the mouse wheel over it or use **+ / −** to zoom around the playhead. **Fit** or a double-click on the zoom scroll bar shows the full recording again. The **View** label gives the visible frame range, and scrubbing the ruler selects frames within that range. Playback and frame stepping keep the current frame visible while preserving the zoom level.
+
+Min/max markers, spot readings and the temperature range update for the displayed frame. **Auto range** fits the palette to each frame; turn it off to use one temperature window across the clip. Palette, units and measurement points persist while scrubbing. Export saves the current frame with its frame number in the PNG filename.
+
+Frames are indexed once and decoded on demand. The encoded file stays in memory, but decoded rasters are only retained for the current frame. The playback rate comes from camera metadata when available; otherwise it defaults to an editable 30 fps. The ruler uses frame numbers so it remains precise when recording timing is unavailable. Compressed JPEG-LS CSQ decoding uses bundled [CharLS](https://github.com/team-charls/charls) on desktop; it is currently unavailable in the WebAssembly build. No FFmpeg or FLIR software is required.
+
+### Measure a video range
+
+Select **Measure** in the left activity bar. Scrub to the first frame and press **I** (or **Mark start**), then scrub to the last frame and press **O** (or **Mark end**). Both endpoints are included, and I/O marks appear on the timeline. Marking pauses playback. Press **Analyse range** to process every selected frame; progress and **Cancel** remain available while you use the viewer.
+
+Results show the hottest and coldest temperatures with their frame numbers and zero-based pixel locations, plus **Average max** (the mean of each frame's hottest reading), **Average min** (the mean of each frame's coldest reading), and **Overall mean** (all valid pixel temperatures across all selected frames, weighted equally per pixel). **Go to hottest/coldest** opens the corresponding frame. **Next hottest**, beside **Go to hottest**, steps through distinct frames ranked by each frame's maximum temperature, highest first. Equal maxima use chronological frame order. The hottest card shows the selected candidate's temperature, pixel location, frame and rank. The button stops at the last candidate; **Go to hottest** returns to rank 1 and restarts browsing. Range-wide extrema and averages remain unchanged. Changing the range, recalibrating, or running a new analysis resets candidate browsing. A single-frame range is valid. The time span is the first-to-last frame interval using the current playback frame rate.
+
+Analysis uses each frame's recorded calibration, or your current edited calibration when recalibrated. Changing calibration or either mark clears old results; changing the palette or display unit does not. Invalid temperatures are excluded. A frame with no valid readings or a decoding error stops the analysis and reports an error, rather than presenting a partial summary. **Reset** clears marks and results. I/O shortcuts are ignored while editing text or numeric fields.
 
 ### Web
 
@@ -73,6 +235,10 @@ The tests in `tests/samples.rs` and the FLIR screenshot in `tests/ui.rs` read re
 ---
 
 ## Usage
+
+The left activity bar switches between **Files** (Explorer) and **Look** (palette, range, mapping and display). Click the active icon again, use **Hide**, or press **Ctrl+B** to collapse the sidebar. **Ctrl+Shift+E** opens Explorer.
+
+On desktop, Explorer shows the current directory, with folders first and expandable subfolders. **Open folder** changes the directory; **Up** goes to its parent; **Refresh** reloads the file list. Click a thermal image or CSQ file to open it. All files are listed; unsupported or unreadable files show an error and keep the current image/video open. Opening a file from outside the current directory switches Explorer to that file's folder. Browser builds retain the activity bar and image controls; filesystem browsing requires the desktop app.
 
 1. Open a file with **open** (ctrl+O) or drop one onto the window
 2. Pick a palette on the left
@@ -231,7 +397,7 @@ See [`plan.md`](plan.md) for the full market research and feature gap analysis a
 ### Phase 3 — Power Tools
 
 - [ ] **Batch processing** — apply palette, params, measurements to multiple files; bulk export
-- [ ] **Video frame extraction** — step through radiometric video sequences
+- [x] **Video frame extraction** — scrub and step through FLIR CSQ sequences on desktop
 - [ ] **Custom report templates** — user-editable layout
 
 ---

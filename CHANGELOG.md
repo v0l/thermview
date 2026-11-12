@@ -6,6 +6,48 @@ All notable changes to thermview are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.1.9] - 2026-11-12
+
+### Added
+- Next hottest in the Measure tab browses distinct selected frames ranked by maximum temperature, with a candidate rank, frame, temperature and pixel location.
+- Go to hottest restarts candidate browsing; equal maxima are ordered chronologically and browsing stops at the last frame.
+
+## [0.1.8] - 2026-11-12
+
+### Added
+- A Measure activity for marking inclusive video ranges with I/O or buttons, with marks displayed on the timeline.
+- Cancellable range analysis with progress, hottest/coldest frame and pixel locations, average frame maximum/minimum, and an overall pixel mean.
+- Buttons to jump to measured extrema, calibration-aware results and invalidation, and explicit errors for incomplete analysis.
+
+## [0.1.7] - 2026-11-12
+
+### Added
+- A Premiere-style zoom scroll bar below the video ruler: drag its handles to change the visible frame range, or its middle to pan without seeking.
+- Playhead-anchored wheel and button zoom, Fit and double-click reset, and adaptive frame ticks for precise zoomed scrubbing.
+- Playback and stepping keep the playhead visible without resetting timeline zoom.
+
+## [0.1.6] - 2026-11-12
+
+### Fixed
+- The GitHub button links to alfiethology/thermview, using the repository URL from package metadata.
+
+## [0.1.5] - 2026-11-12
+
+### Added
+- A collapsible sidebar with Explorer and image-control activities on a left activity bar.
+- A desktop directory tree with expandable folders, folder selection, refresh and file opening, including readable errors for unsupported files.
+- Ctrl+B toggles the sidebar; Ctrl+Shift+E opens Explorer.
+
+## [0.1.4] - 2026-11-12
+
+### Added
+- FLIR CSQ playback with a video-only timeline and per-frame temperature readings.
+- Debian installers with a desktop launcher and CSQ file associations.
+
+### Fixed
+- Accept extra zero padding before the JPEG-LS end marker in FLIR recordings, so playback can pass affected frames without discarding their thermal data.
+- Use the installed executable's absolute path in the packaged desktop launcher.
+
 ## [0.1.3] - 2026-11-01
 
 ### Fixed

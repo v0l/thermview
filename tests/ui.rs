@@ -28,6 +28,9 @@ fn harness() -> Harness {
     let ctx = h.ctx.clone();
     h.app.load(&ctx, Ok(synthetic()));
     h.settle();
+    let look = h.find("LOOK").expect("image controls activity").center();
+    h.click(look);
+    h.settle();
     h
 }
 
@@ -138,4 +141,53 @@ fn open_shows_the_file_browser_without_waiting_for_more_input() {
         h.frame(Vec::new());
     }
     assert!(h.texts().iter().any(|(t, _)| t.starts_with("FOLDER")));
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[test]
+fn activity_bar_switches_and_collapses_the_sidebar() {
+    let mut h = harness();
+    assert!(h.find("PALETTE").is_some());
+    let files = h.find("FILES").unwrap().center();
+    h.click(files);
+    assert!(h.find("EXPLORER").is_some());
+    assert!(h.find("PALETTE").is_none());
+    h.click(files);
+    assert!(h.find("EXPLORER").is_none());
+    assert!(h.find("PALETTE").is_none());
+    h.click(h.find("LOOK").unwrap().center());
+    assert!(h.find("PALETTE").is_some());
+    assert!(h.app.doc.is_some());
+    save(&h, "activity-controls.png");
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[test]
+fn explorer_opens_nested_thermal_files_and_reports_unsupported_files() {
+    let dir = std::path::Path::new(env!("CARGO_TARGET_TMPDIR")).join("explorer-ui");
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(dir.join("nested")).unwrap();
+    std::fs::write(dir.join("nested/scene.jpg"), synthetic().bytes).unwrap();
+    std::fs::write(dir.join("notes.txt"), "not a thermal image").unwrap();
+    std::fs::write(dir.join(".hidden"), "hidden file").unwrap();
+    let mut h = harness();
+    h.app.explorer.set_root(dir.clone());
+    h.click(h.find("FILES").unwrap().center());
+    assert!(h.find(".hidden").is_some(), "hidden files are listed");
+    assert!(h.find("scene.jpg").is_none(), "folder starts collapsed");
+    h.click(h.find("nested").unwrap().center());
+    h.click(h.find("scene.jpg").unwrap().center());
+    assert_eq!(h.app.doc.as_ref().unwrap().name, "scene.jpg");
+    assert_eq!(h.app.explorer.root, dir.canonicalize().unwrap());
+    h.click(h.find("notes.txt").unwrap().center());
+    assert_eq!(h.app.doc.as_ref().unwrap().name, "scene.jpg", "failed open keeps the current view");
+    assert!(h.texts().iter().any(|(t, _)| t.contains("Cannot open notes.txt")));
+    save(&h, "explorer.png");
+    std::fs::write(dir.join("new-file.txt"), "new file").unwrap();
+    assert!(h.find("new-file.txt").is_none());
+    h.click(h.find("REFRESH").unwrap().center());
+    assert!(h.find("new-file.txt").is_some());
+    h.click(h.find("nested").unwrap().center());
+    assert!(h.find("scene.jpg").is_none(), "folder collapses");
+    let _ = std::fs::remove_dir_all(dir);
 }
