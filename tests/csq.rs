@@ -143,3 +143,58 @@ fn video_controls_scrub_and_disappear_when_an_image_is_opened() {
     assert!(h.find("PLAY").is_none());
     assert!(h.find("FRAME 2 / 2").is_none());
 }
+
+#[test]
+#[ignore = "set THERMVIEW_TEST_CSQ to a local camera recording"]
+fn real_camera_recording_opens_and_seeks() {
+    let path = std::env::var("THERMVIEW_TEST_CSQ").expect("set THERMVIEW_TEST_CSQ");
+    let video = Video::open(std::fs::read(&path).unwrap()).unwrap();
+    let count = video.len();
+    println!("Indexed {count} frames at {} fps", video.fps);
+    let mut doc = Doc::from_video(video, &path, None).unwrap();
+    for index in [0, count / 2, count - 1, 0] {
+        doc.seek(index).unwrap();
+        assert!(doc.image.stats.min.celsius.is_finite());
+        assert!(doc.image.stats.max.celsius.is_finite());
+        assert_eq!(doc.image.celsius.len(), doc.image.width * doc.image.height);
+        println!(
+            "Frame {}: {} x {}, min {:.2} C, max {:.2} C",
+            index + 1,
+            doc.image.width,
+            doc.image.height,
+            doc.image.stats.min.celsius,
+            doc.image.stats.max.celsius
+        );
+    }
+}
+
+#[test]
+#[ignore = "set THERMVIEW_TEST_CSQ and THERMVIEW_TEST_REFERENCE to the recording and independent raw decode"]
+fn real_camera_padding_frame_matches_independent_decoder() {
+    let path = std::env::var("THERMVIEW_TEST_CSQ").unwrap();
+    let reference = std::env::var("THERMVIEW_TEST_REFERENCE").unwrap();
+    let expected = std::fs::read(reference).unwrap();
+    let expected: Vec<u16> =
+        expected.chunks_exact(2).map(|p| u16::from_le_bytes([p[0], p[1]])).collect();
+    let mut doc =
+        Doc::from_video(Video::open(std::fs::read(path).unwrap()).unwrap(), "recording.csq", None)
+            .unwrap();
+    doc.seek(11146).unwrap();
+    doc.seek(11147).unwrap();
+    assert_eq!(doc.image.radiometry.as_ref().unwrap().counts, expected);
+    assert_eq!(doc.video.as_ref().unwrap().current, 11147);
+    println!("Frame 11148: every sensor count matches the independent decoder");
+    doc.seek(11148).unwrap();
+    assert_eq!(doc.video.as_ref().unwrap().current, 11148);
+}
+
+#[test]
+#[ignore = "set THERMVIEW_TEST_CSQ; decodes every frame of a local recording"]
+fn every_frame_of_real_camera_recording_decodes() {
+    let path = std::env::var("THERMVIEW_TEST_CSQ").unwrap();
+    let video = Video::open(std::fs::read(path).unwrap()).unwrap();
+    for index in 0..video.len() {
+        video.frame(index).unwrap();
+    }
+    println!("All {} frames decoded successfully", video.len());
+}

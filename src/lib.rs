@@ -3,6 +3,8 @@ pub mod bytes;
 pub mod colorbar;
 pub mod doc;
 pub mod exif;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod explorer;
 pub mod export;
 pub mod formats;
 pub mod headless;

@@ -10,8 +10,14 @@ use egui::{
 };
 use egui_bench::prelude::*;
 
-const REPO: &str = "https://github.com/v0l/thermview";
+const REPO: &str = env!("CARGO_PKG_REPOSITORY");
 const PRESETS: [(f64, f64); 3] = [(20.0, 40.0), (0.0, 80.0), (-10.0, 50.0)];
+
+#[derive(Clone, Copy, PartialEq)]
+enum Sidebar {
+    Explorer,
+    Controls,
+}
 
 pub struct App {
     pub doc: Option<Doc>,
@@ -19,6 +25,12 @@ pub struct App {
     texture: Option<((Look, u64), TextureHandle)>,
     pointer: Option<(usize, usize, f32)>,
     status: Option<(String, bool)>,
+    sidebar: Option<Sidebar>,
+    last_sidebar: Sidebar,
+    #[cfg(not(target_arch = "wasm32"))]
+    pub explorer: crate::explorer::Explorer,
+    #[cfg(not(target_arch = "wasm32"))]
+    folder_browser: Option<Browser>,
     #[cfg(not(target_arch = "wasm32"))]
     browser: Option<Browser>,
     #[cfg(target_arch = "wasm32")]
@@ -34,6 +46,16 @@ impl App {
             texture: None,
             pointer: None,
             status: None,
+            sidebar: Some(if cfg!(target_arch = "wasm32") {
+                Sidebar::Controls
+            } else {
+                Sidebar::Explorer
+            }),
+            last_sidebar: Sidebar::Explorer,
+            #[cfg(not(target_arch = "wasm32"))]
+            explorer: crate::explorer::Explorer::new(std::env::current_dir().unwrap_or_default()),
+            #[cfg(not(target_arch = "wasm32"))]
+            folder_browser: None,
             #[cfg(not(target_arch = "wasm32"))]
             browser: None,
             #[cfg(target_arch = "wasm32")]
@@ -57,6 +79,10 @@ impl App {
         match result {
             Ok(doc) => {
                 self.doc = Some(doc);
+                #[cfg(not(target_arch = "wasm32"))]
+                if let Some(path) = &loaded.path {
+                    self.explorer.reveal(path);
+                }
                 self.path = loaded.path;
                 self.texture = None;
                 self.pointer = None;
@@ -66,7 +92,7 @@ impl App {
                     loaded.name
                 )));
             }
-            Err(e) => self.fail(format!("{}: {e}", loaded.name)),
+            Err(e) => self.fail(format!("Cannot open {}: {e}", loaded.name)),
         }
     }
 
@@ -77,13 +103,7 @@ impl App {
     fn open(&mut self, _ctx: &egui::Context) {
         #[cfg(not(target_arch = "wasm32"))]
         {
-            let dir = self
-                .path
-                .as_ref()
-                .and_then(|p| p.parent())
-                .map(|p| p.to_path_buf())
-                .or_else(|| std::env::current_dir().ok())
-                .unwrap_or_default();
+            let dir = self.explorer.root.clone();
             self.browser =
                 Some(Browser::new("open a thermal image or video", dir).suffixes(&host::SUFFIXES));
         }
@@ -92,6 +112,34 @@ impl App {
     }
 
     fn poll_open(&mut self, ctx: &egui::Context) {
+        #[cfg(not(target_arch = "wasm32"))]
+        if let Some(browser) = &mut self.folder_browser {
+            match browser.show(ctx) {
+                Picked::Browsing => {}
+                Picked::Cancelled => self.folder_browser = None,
+                Picked::Folder(path) => {
+                    self.folder_browser = None;
+                    self.explorer.set_root(path);
+                    self.sidebar = Some(Sidebar::Explorer);
+                }
+                Picked::File(path) => {
+                    self.folder_browser = None;
+                    self.load(ctx, host::read(&path));
+                }
+            }
+        }
+        if ctx.input(|i| i.modifiers.command && i.key_pressed(egui::Key::B)) {
+            self.sidebar = if let Some(panel) = self.sidebar {
+                self.last_sidebar = panel;
+                None
+            } else {
+                Some(self.last_sidebar)
+            };
+        }
+        if ctx.input(|i| i.modifiers.command && i.modifiers.shift && i.key_pressed(egui::Key::E)) {
+            self.sidebar = Some(Sidebar::Explorer);
+            self.last_sidebar = Sidebar::Explorer;
+        }
         #[cfg(not(target_arch = "wasm32"))]
         if let Some(b) = &mut self.browser {
             match b.show(ctx) {
@@ -114,7 +162,7 @@ impl App {
         if ctx.input(|i| i.modifiers.command && i.key_pressed(egui::Key::O)) {
             self.open(ctx);
         }
-        if ctx.input(|i| i.modifiers.command && i.key_pressed(egui::Key::E)) {
+        if ctx.input(|i| i.modifiers.command && !i.modifiers.shift && i.key_pressed(egui::Key::E)) {
             self.export();
         }
     }
@@ -176,6 +224,153 @@ impl App {
             });
         });
         ui.add_space(6.0);
+    }
+
+    fn activity_bar(&mut self, ui: &mut Ui) {
+        for (panel, caption, help) in [
+            (Sidebar::Explorer, "FILES", "Explorer · Ctrl+Shift+E"),
+            (Sidebar::Controls, "LOOK", "Image controls · palette, range and display"),
+        ] {
+            let (rect, response) = ui.allocate_exact_size(vec2(52.0, 58.0), Sense::click());
+            let on = self.sidebar == Some(panel);
+            let p = ui.painter();
+            if on || response.hovered() {
+                p.rect_filled(rect, 0.0, if on { PANEL } else { BAND });
+            }
+            if on {
+                p.rect_filled(
+                    Rect::from_min_size(rect.min, vec2(2.0, rect.height())),
+                    0.0,
+                    READOUT,
+                );
+            }
+            let colour = if on { READOUT } else { LEGEND };
+            let stroke = Stroke::new(1.5, colour);
+            let center = rect.center_top() + vec2(0.0, 22.0);
+            if panel == Sidebar::Explorer {
+                p.rect_stroke(
+                    Rect::from_center_size(center + vec2(-3.0, -3.0), vec2(15.0, 19.0)),
+                    1.0,
+                    stroke,
+                    StrokeKind::Inside,
+                );
+                p.rect_filled(
+                    Rect::from_center_size(center + vec2(3.0, 3.0), vec2(15.0, 19.0)),
+                    1.0,
+                    if on { PANEL } else { CHASSIS },
+                );
+                p.rect_stroke(
+                    Rect::from_center_size(center + vec2(3.0, 3.0), vec2(15.0, 19.0)),
+                    1.0,
+                    stroke,
+                    StrokeKind::Inside,
+                );
+            } else {
+                for (y, x) in [(-8.0, -4.0), (0.0, 5.0), (8.0, -1.0)] {
+                    p.line_segment([center + vec2(-11.0, y), center + vec2(11.0, y)], stroke);
+                    p.circle_filled(center + vec2(x, y), 3.0, colour);
+                }
+            }
+            p.text(
+                pos2(rect.center().x, rect.bottom() - 8.0),
+                Align2::CENTER_BOTTOM,
+                caption,
+                figure(8.0),
+                colour,
+            );
+            response.widget_info(|| egui::WidgetInfo::selected(egui::Role::Tab, true, on, caption));
+            if response.on_hover_text(help).clicked() {
+                self.sidebar = if on { None } else { Some(panel) };
+                self.last_sidebar = panel;
+            }
+        }
+    }
+
+    fn sidebar(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            Line::new()
+                .legend(if self.sidebar == Some(Sidebar::Explorer) {
+                    "explorer"
+                } else {
+                    "image controls"
+                })
+                .show(ui);
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                if ui
+                    .add(Key::new("hide").outline(VALUE))
+                    .on_hover_text("toggle sidebar · Ctrl+B")
+                    .clicked()
+                {
+                    if let Some(panel) = self.sidebar {
+                        self.last_sidebar = panel;
+                    }
+                    self.sidebar = None;
+                }
+            });
+        });
+        ui.add_space(8.0);
+        match self.sidebar {
+            Some(Sidebar::Controls) => {
+                egui::ScrollArea::vertical().id_salt("image controls scroll").show(ui, |ui| {
+                    if let Some(doc) = &mut self.doc {
+                        App::controls(ui, doc);
+                    } else {
+                        hint(ui, "open a thermal image or video to adjust its appearance");
+                    }
+                });
+            }
+            Some(Sidebar::Explorer) => {
+                #[cfg(not(target_arch = "wasm32"))]
+                self.explorer_panel(ui);
+                #[cfg(target_arch = "wasm32")]
+                {
+                    hint(ui, "directory browsing is available in the desktop app");
+                    if ui.add(Key::new("open file").outline(VALUE)).clicked() {
+                        self.open(&ui.ctx().clone());
+                    }
+                }
+            }
+            None => {}
+        }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn explorer_panel(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            if ui.add(Key::new("open folder").outline(VALUE)).clicked() {
+                self.folder_browser =
+                    Some(Browser::new("open folder", self.explorer.root.clone()).folders(true));
+            }
+            if ui.add(Key::new("up").outline(VALUE)).on_hover_text("parent directory").clicked() {
+                if let Some(parent) = self.explorer.root.parent().map(|p| p.to_path_buf()) {
+                    self.explorer.set_root(parent);
+                }
+            }
+            if ui.add(Key::new("refresh").outline(VALUE)).clicked() {
+                self.explorer.refresh();
+            }
+        });
+        ui.add_space(6.0);
+        let title = self
+            .explorer
+            .root
+            .file_name()
+            .unwrap_or(self.explorer.root.as_os_str())
+            .to_string_lossy();
+        ui.label(egui::RichText::new(title.to_string()).font(figure(12.0)).color(VALUE))
+            .on_hover_text(self.explorer.root.display().to_string());
+        ui.add_space(4.0);
+        let opened = egui::ScrollArea::vertical()
+            .id_salt("explorer scroll")
+            .show(ui, |ui| self.explorer.show(ui))
+            .inner;
+        if let Some(path) = opened {
+            if path.is_file() {
+                self.load(&ui.ctx().clone(), host::read(&path));
+            } else {
+                self.fail(format!("Cannot read {}: not a regular file", path.display()));
+            }
+        }
     }
 
     fn controls(ui: &mut Ui, doc: &mut Doc) {
@@ -831,19 +1026,20 @@ impl App {
                 .frame(egui::Frame::NONE.fill(CHASSIS).inner_margin(egui::Margin::symmetric(12, 8)))
                 .show(ui, |ui| self.timeline(ui));
         }
-        if self.doc.is_some() {
-            egui::Panel::left("controls")
+        egui::Panel::left("activity bar")
+            .resizable(false)
+            .exact_size(52.0)
+            .frame(egui::Frame::NONE.fill(CHASSIS))
+            .show(ui, |ui| self.activity_bar(ui));
+        if self.sidebar.is_some() {
+            egui::Panel::left("sidebar")
                 .resizable(true)
                 .default_size(290.0)
                 .min_size(250.0)
                 .frame(egui::Frame::NONE.fill(CHASSIS).inner_margin(egui::Margin::symmetric(10, 8)))
-                .show(ui, |ui| {
-                    egui::ScrollArea::vertical().show(ui, |ui| {
-                        if let Some(doc) = &mut self.doc {
-                            App::controls(ui, doc);
-                        }
-                    });
-                });
+                .show(ui, |ui| self.sidebar(ui));
+        }
+        if self.doc.is_some() {
             egui::Panel::right("readings")
                 .resizable(true)
                 .default_size(290.0)

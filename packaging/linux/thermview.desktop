@@ -2,7 +2,7 @@
 Type=Application
 Name=ThermView
 Comment=View radiometric thermal images and CSQ videos
-Exec=thermview %f
+Exec=/usr/bin/thermview %f
 Icon=thermview
 Terminal=false
 Categories=Graphics;

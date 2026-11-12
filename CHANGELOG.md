@@ -6,6 +6,28 @@ All notable changes to thermview are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-11-12
+
+### Fixed
+- The GitHub button links to alfiethology/thermview, using the repository URL from package metadata.
+
+## [0.1.5] - 2026-11-12
+
+### Added
+- A collapsible sidebar with Explorer and image-control activities on a left activity bar.
+- A desktop directory tree with expandable folders, folder selection, refresh and file opening, including readable errors for unsupported files.
+- Ctrl+B toggles the sidebar; Ctrl+Shift+E opens Explorer.
+
+## [0.1.4] - 2026-11-12
+
+### Added
+- FLIR CSQ playback with a video-only timeline and per-frame temperature readings.
+- Debian installers with a desktop launcher and CSQ file associations.
+
+### Fixed
+- Accept extra zero padding before the JPEG-LS end marker in FLIR recordings, so playback can pass affected frames without discarding their thermal data.
+- Use the installed executable's absolute path in the packaged desktop launcher.
+
 ## [0.1.3] - 2026-11-01
 
 ### Fixed

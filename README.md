@@ -59,10 +59,12 @@ thermview render photo.jpg -o out.png --palette iron --scale 4 --range 20:40 --p
 Linux releases include `thermview_VERSION_amd64.deb` and `thermview_VERSION_arm64.deb`. Download the package for your machine and install it with:
 
 ```bash
-sudo apt install ./thermview_0.1.3-1_amd64.deb
+sudo apt install ./thermview_0.1.6-1_amd64.deb
 ```
 
 This installs the `thermview` command, a ThermView app-menu entry, its icon and CSQ/IRG file associations. Open it from the app menu or use **Open With → ThermView** on a CSQ file. Remove it with `sudo apt remove thermview`.
+
+If an older launcher-managed installation is also present, `~/.local/bin/thermview` or a personal `~/.local/share/applications/thermview.desktop` can take precedence over the Debian installation. Run `/usr/bin/thermview` to select the Debian binary explicitly, and update any personal launcher to use that path. The packaged desktop entry uses the absolute path.
 
 To build a package locally on Debian or Ubuntu, install Rust 1.95+ plus the packaging tools:
 
@@ -101,6 +103,10 @@ The tests in `tests/samples.rs` and the FLIR screenshot in `tests/ui.rs` read re
 ---
 
 ## Usage
+
+The left activity bar switches between **Files** (Explorer) and **Look** (palette, range, mapping and display). Click the active icon again, use **Hide**, or press **Ctrl+B** to collapse the sidebar. **Ctrl+Shift+E** opens Explorer.
+
+On desktop, Explorer shows the current directory, with folders first and expandable subfolders. **Open folder** changes the directory; **Up** goes to its parent; **Refresh** reloads the file list. Click a thermal image or CSQ file to open it. All files are listed; unsupported or unreadable files show an error and keep the current image/video open. Opening a file from outside the current directory switches Explorer to that file's folder. Browser builds retain the activity bar and image controls; filesystem browsing requires the desktop app.
 
 1. Open a file with **open** (ctrl+O) or drop one onto the window
 2. Pick a palette on the left

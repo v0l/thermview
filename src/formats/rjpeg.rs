@@ -141,7 +141,7 @@ fn jpegls_counts(data: &[u8]) -> Result<(usize, usize, Vec<u16>), Error> {
     {
         return Err(Error::new("expected a 16-bit grayscale thermal JPEG-LS frame"));
     }
-    let bytes = charls::CharLS::default().decode(data).map_err(fail)?;
+    let bytes = decode_jpegls(data).map_err(fail)?;
     if bytes.len() != w * h * 2 {
         return Err(Error::new("JPEG-LS pixel count does not match frame dimensions"));
     }
@@ -149,7 +149,70 @@ fn jpegls_counts(data: &[u8]) -> Result<(usize, usize, Vec<u16>), Error> {
     Ok((w, h, counts))
 }
 
+// Some FLIR encoders put whole zero padding bytes before EOI. CharLS 2.4.2
+// rejects those after decoding the raster. Retry only those end-of-scan errors,
+// removing one zero at a time so genuine entropy bits and FF stuffing survive.
+// Every accepted result must still pass the decoder's complete-raster checks.
+#[cfg(not(target_arch = "wasm32"))]
+fn decode_jpegls(data: &[u8]) -> Result<Vec<u8>, charls::Error> {
+    let original = match charls::CharLS::default().decode(data) {
+        Ok(bytes) => return Ok(bytes),
+        Err(e) => e,
+    };
+    // CharLS C API: 6 = too_much_encoded_data, 12 = marker_start_byte_not_found.
+    if !matches!(original, charls::Error::JpegLsError { code: 6 | 12 }) {
+        return Err(original);
+    }
+    let Some(eoi) = data.windows(2).rposition(|p| p == [0xff, 0xd9]) else {
+        return Err(original);
+    };
+    let zeros = data[..eoi].iter().rev().take_while(|&&b| b == 0).count().min(64);
+    if zeros == 0 {
+        return Err(original);
+    }
+    let mut padded = data.to_vec();
+    for removed in 1..=zeros {
+        padded.remove(eoi - removed);
+        if let Ok(bytes) = charls::CharLS::default().decode(&padded) {
+            return Ok(bytes);
+        }
+    }
+    Err(original)
+}
+
 #[cfg(target_arch = "wasm32")]
 fn jpegls_counts(_: &[u8]) -> Result<(usize, usize, Vec<u16>), Error> {
     Err(Error::new("JPEG-LS CSQ videos currently require the desktop version of ThermView"))
+}
+
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod jpegls_tests {
+    use super::*;
+
+    #[test]
+    fn camera_padding_before_eoi_preserves_every_sensor_count() {
+        let counts: Vec<u16> = (0..48).map(|i| 14000 + i * 10).collect();
+        let raw: Vec<u8> = counts.iter().flat_map(|c| c.to_ne_bytes()).collect();
+        let encoded = charls::CharLS::default()
+            .encode(
+                charls::FrameInfo { width: 8, height: 6, bits_per_sample: 16, component_count: 1 },
+                0,
+                &raw,
+            )
+            .unwrap();
+        let eoi = encoded.windows(2).rposition(|p| p == [0xff, 0xd9]).unwrap();
+        for padding in [0, 1, 4, 8, 32] {
+            let mut padded = encoded.clone();
+            padded.splice(eoi..eoi, vec![0; padding]);
+            // FFF record alignment may also add zeros after EOI.
+            padded.extend([0, 0, 0]);
+            let (w, h, decoded) = jpegls_counts(&padded).unwrap();
+            assert_eq!((w, h), (8, 6));
+            assert_eq!(decoded, counts, "{padding} padding bytes");
+        }
+        let mut invalid = encoded.clone();
+        invalid.insert(eoi, 0x7f);
+        assert!(jpegls_counts(&invalid).is_err(), "nonzero encoded data must not be discarded");
+        assert!(jpegls_counts(&encoded[..eoi]).is_err(), "missing EOI must not be fabricated");
+    }
 }
