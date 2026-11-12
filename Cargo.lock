@@ -2692,7 +2692,7 @@ dependencies = [
 
 [[package]]
 name = "thermview"
-version = "0.1.8"
+version = "0.1.9"
 dependencies = [
  "charls",
  "chrono",

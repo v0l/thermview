@@ -548,8 +548,9 @@ impl App {
         }
         if let Some(result) = &measurement.result {
             let unit = doc.unit;
-            section(ui, "hottest", "highest temperature in the selected frames", |ui| {
-                let p = result.hottest;
+            let mut rank = measurement.hottest_rank.min(result.hottest_frames.len() - 1);
+            section(ui, "hottest", "frames ranked by maximum temperature", |ui| {
+                let p = result.hottest_frames[rank];
                 hero(
                     ui,
                     &format!("frame {} · pixel {}, {}", p.frame + 1, p.spot.x, p.spot.y),
@@ -557,10 +558,31 @@ impl App {
                     unit.symbol(),
                     READOUT,
                 );
-                if ui.add(Key::new("go to hottest").outline(READOUT)).clicked() {
-                    seek = Some(p.frame);
-                }
+                reading(
+                    ui,
+                    "candidate",
+                    format!("{} of {}", rank + 1, result.hottest_frames.len()),
+                );
+                ui.horizontal(|ui| {
+                    let width = ((ui.available_width() - ui.spacing().item_spacing.x) / 2.0).max(1.0);
+                    let button = |text: &str| egui::Button::new(egui::RichText::new(text).font(figure(10.0)).color(READOUT))
+                        .fill(WELL).stroke(Stroke::new(1.0, ETCH));
+                    if ui.add_sized(vec2(width, 30.0), button("GO TO HOTTEST"))
+                        .on_hover_text("return to the hottest frame and restart the ranked list").clicked() {
+                        rank = 0;
+                        seek = Some(result.hottest.frame);
+                    }
+                    let has_next = rank + 1 < result.hottest_frames.len();
+                    let next = ui.add_enabled_ui(has_next, |ui| ui.add_sized(vec2(width, 30.0), button("NEXT HOTTEST"))).inner;
+                    if next.on_hover_text(if has_next {
+                        "go to the next frame ranked by its maximum temperature; ties use frame order"
+                    } else { "no more frames in this range; Go to hottest restarts the list" }).clicked() && has_next {
+                        rank += 1;
+                        seek = Some(result.hottest_frames[rank].frame);
+                    }
+                });
             });
+            measurement.hottest_rank = rank;
             ui.add_space(8.0);
             section(ui, "coldest", "lowest temperature in the selected frames", |ui| {
                 let p = result.coldest;

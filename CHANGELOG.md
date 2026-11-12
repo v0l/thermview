@@ -6,6 +6,12 @@ All notable changes to thermview are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.1.9] - 2026-11-12
+
+### Added
+- Next hottest in the Measure tab browses distinct selected frames ranked by maximum temperature, with a candidate rank, frame, temperature and pixel location.
+- Go to hottest restarts candidate browsing; equal maxima are ordered chronologically and browsing stops at the last frame.
+
 ## [0.1.8] - 2026-11-12
 
 ### Added

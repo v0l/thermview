@@ -553,3 +553,55 @@ fn real_recording_range_measurement_crosses_the_padded_frame() {
     );
     assert_eq!(doc.video.as_ref().unwrap().current, 0);
 }
+
+#[test]
+fn next_hottest_visits_each_ranked_frame_and_go_to_hottest_restarts() {
+    let mut h = zoom_harness();
+    h.click(h.find("MEASURE").unwrap().center());
+    h.click(h.find("MARK START").unwrap().center());
+    h.app.doc.as_mut().unwrap().seek(10).unwrap();
+    h.settle();
+    h.click(h.find("MARK END").unwrap().center());
+    h.click(h.find("ANALYSE RANGE").unwrap().center());
+    for _ in 0..8 {
+        h.frame(Vec::new());
+    }
+    let go = h.find("GO TO HOTTEST").unwrap();
+    let next = h.find("NEXT HOTTEST").unwrap();
+    assert!((go.center().y - next.center().y).abs() < 1.0, "buttons must sit side by side");
+    assert!(next.left() > go.right());
+    h.click(go.center());
+    assert_eq!(h.app.doc.as_ref().unwrap().video.as_ref().unwrap().current, 10);
+    for expected in (0..10).rev() {
+        h.click(h.find("NEXT HOTTEST").unwrap().center());
+        let doc = h.app.doc.as_ref().unwrap();
+        assert_eq!(doc.video.as_ref().unwrap().current, expected);
+        let result = doc.measurement.result.as_ref().unwrap();
+        assert_eq!(
+            result.hottest.frame, 10,
+            "browsing candidates must preserve the original maximum"
+        );
+        assert_eq!(result.hottest_frames[doc.measurement.hottest_rank].frame, expected);
+    }
+    assert!(h.find("11 of 11").is_some());
+    h.click(h.find("NEXT HOTTEST").unwrap().center());
+    assert_eq!(
+        h.app.doc.as_ref().unwrap().video.as_ref().unwrap().current,
+        0,
+        "the list must stop at its end"
+    );
+    h.click(h.find("GO TO HOTTEST").unwrap().center());
+    assert_eq!(h.app.doc.as_ref().unwrap().video.as_ref().unwrap().current, 10);
+    assert_eq!(h.app.doc.as_ref().unwrap().measurement.hottest_rank, 0);
+    h.click(h.find("NEXT HOTTEST").unwrap().center());
+    assert_eq!(h.app.doc.as_ref().unwrap().video.as_ref().unwrap().current, 9);
+    assert!(h.find("2 of 11").is_some());
+    std::fs::write(
+        std::path::Path::new(env!("CARGO_TARGET_TMPDIR")).join("csq-next-hottest.png"),
+        h.png(),
+    )
+    .unwrap();
+    h.click(h.find("MARK END").unwrap().center());
+    assert!(h.app.doc.as_ref().unwrap().measurement.result.is_none());
+    assert_eq!(h.app.doc.as_ref().unwrap().measurement.hottest_rank, 0);
+}

@@ -16,6 +16,7 @@ pub struct Summary {
     pub end: usize,
     pub frames: usize,
     pub hottest: FrameSpot,
+    pub hottest_frames: Vec<FrameSpot>,
     pub coldest: FrameSpot,
     pub average_max: f64,
     pub average_min: f64,
@@ -29,6 +30,7 @@ pub struct Measurement {
     pub end: Option<usize>,
     pub result: Option<Summary>,
     pub error: Option<String>,
+    pub hottest_rank: usize,
     job: Option<Job>,
 }
 
@@ -38,6 +40,7 @@ struct Job {
     next: usize,
     params: Option<Params>,
     hottest: Option<FrameSpot>,
+    hottest_frames: Vec<FrameSpot>,
     coldest: Option<FrameSpot>,
     maxima: f64,
     minima: f64,
@@ -55,6 +58,7 @@ impl Measurement {
         self.end = Some(frame);
     }
     pub fn invalidate(&mut self) {
+        self.hottest_rank = 0;
         self.result = None;
         self.error = None;
         self.job = None;
@@ -93,6 +97,7 @@ impl Measurement {
             next: start,
             params,
             hottest: None,
+            hottest_frames: Vec::new(),
             coldest: None,
             maxima: 0.0,
             minima: 0.0,
@@ -157,18 +162,22 @@ impl Job {
         if self.coldest.is_none_or(|p| min.celsius < p.spot.celsius) {
             self.coldest = Some(FrameSpot { frame: self.next, spot: min });
         }
+        self.hottest_frames.push(FrameSpot { frame: self.next, spot: max });
         self.maxima += max.celsius as f64;
         self.minima += min.celsius as f64;
         self.next += 1;
         Ok(())
     }
-    fn finish(self) -> Summary {
+    fn finish(mut self) -> Summary {
+        self.hottest_frames
+            .sort_by(|a, b| b.spot.celsius.total_cmp(&a.spot.celsius).then(a.frame.cmp(&b.frame)));
         let frames = self.end - self.start + 1;
         Summary {
             start: self.start,
             end: self.end,
             frames,
             hottest: self.hottest.expect("at least one valid frame"),
+            hottest_frames: self.hottest_frames,
             coldest: self.coldest.expect("at least one valid frame"),
             average_max: self.maxima / frames as f64,
             average_min: self.minima / frames as f64,
@@ -191,6 +200,7 @@ mod tests {
             next: 10,
             params: None,
             hottest: None,
+            hottest_frames: Vec::new(),
             coldest: None,
             maxima: 0.0,
             minima: 0.0,
@@ -240,6 +250,7 @@ mod tests {
             next: 0,
             params: None,
             hottest: None,
+            hottest_frames: Vec::new(),
             coldest: None,
             maxima: 0.0,
             minima: 0.0,
@@ -261,6 +272,7 @@ mod tests {
             next: 0,
             params: None,
             hottest: None,
+            hottest_frames: Vec::new(),
             coldest: None,
             maxima: 0.0,
             minima: 0.0,
@@ -268,5 +280,38 @@ mod tests {
             pixels: 0,
         };
         assert!(job.push(&ThermalImage::new(Format::FlirCsq, 1, 1, vec![f32::NAN])).is_err());
+    }
+
+    #[test]
+    fn hottest_candidates_rank_distinct_frames_and_break_ties_chronologically() {
+        let mut job = Job {
+            start: 10,
+            end: 13,
+            next: 10,
+            params: None,
+            hottest: None,
+            hottest_frames: Vec::new(),
+            coldest: None,
+            maxima: 0.0,
+            minima: 0.0,
+            sum: 0.0,
+            pixels: 0,
+        };
+        for max in [30.0, 50.0, 50.0, 40.0] {
+            job.push(&ThermalImage::new(Format::FlirCsq, 2, 1, vec![10.0, max])).unwrap();
+        }
+        let result = job.finish();
+        assert_eq!(
+            result.hottest_frames.iter().map(|p| p.frame).collect::<Vec<_>>(),
+            vec![11, 12, 13, 10]
+        );
+        assert_eq!(result.hottest_frames[0], result.hottest);
+        assert_eq!(result.hottest_frames[3].spot.celsius, 30.0);
+        let mut measurement = Measurement::default();
+        measurement.hottest_rank = 3;
+        measurement.result = Some(result);
+        measurement.mark_end(12);
+        assert_eq!(measurement.hottest_rank, 0);
+        assert!(measurement.result.is_none());
     }
 }
