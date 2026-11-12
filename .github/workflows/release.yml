@@ -33,6 +33,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.target }}
+      - name: Linux build and packaging dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y cmake g++ pkg-config libwayland-dev libxkbcommon-dev dpkg-dev python3
       - run: cargo build --release --locked -p thermview --target ${{ matrix.target }}
       - name: package
         shell: bash
@@ -50,6 +53,12 @@ jobs:
             tar czf "$name.tar.gz" "$name"
             shasum -a 256 "$name.tar.gz" > "$name.tar.gz.sha256"
           fi
+      - name: Debian package
+        if: runner.os == 'Linux'
+        shell: bash
+        env:
+          THERMVIEW_BINARY: target/${{ matrix.target }}/release/thermview
+        run: packaging/linux/build-deb.sh "${{ matrix.target }}"
       - name: app bundle
         if: runner.os == 'macOS'
         shell: bash
@@ -89,6 +98,7 @@ jobs:
             dist/*.tar.gz
             dist/*.zip
             dist/*.dmg
+            dist/*.deb
             dist/*.msi
             dist/*.sha256
 

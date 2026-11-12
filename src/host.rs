@@ -5,8 +5,10 @@ pub struct Loaded {
     pub path: Option<std::path::PathBuf>,
 }
 
-pub const SUFFIXES: [&str; 10] =
-    [".irg", ".IRG", ".jpg", ".JPG", ".jpeg", ".JPEG", ".img", ".IMG", ".seq", ".SEQ"];
+pub const SUFFIXES: [&str; 12] = [
+    ".irg", ".IRG", ".jpg", ".JPG", ".jpeg", ".JPEG", ".img", ".IMG", ".seq", ".SEQ", ".csq",
+    ".CSQ",
+];
 
 pub fn dropped(file: &dyn egui::DroppedFile) -> Result<Loaded, String> {
     #[cfg(not(target_arch = "wasm32"))]

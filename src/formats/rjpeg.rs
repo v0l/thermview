@@ -9,7 +9,11 @@ const PNG_SIGNATURE: &[u8] = &[0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A];
 
 pub fn parse(data: &[u8]) -> Result<ThermalImage, Error> {
     let fff = flir_app1(data)?;
-    let recs = records(&fff)?;
+    parse_fff(&fff, Format::FlirJpeg)
+}
+
+pub(crate) fn parse_fff(fff: &[u8], format: Format) -> Result<ThermalImage, Error> {
+    let recs = records(fff)?;
     let find_rec = |kind: u16| -> Result<&Record, Error> {
         recs.iter()
             .find(|r| r.kind == kind)
@@ -42,7 +46,7 @@ pub fn parse(data: &[u8]) -> Result<ThermalImage, Error> {
     };
     let conv = Conversion::new(&params, &planck);
     let celsius = counts.iter().map(|&c| conv.celsius(c as f64) as f32).collect();
-    let mut image = ThermalImage::new(Format::FlirJpeg, width, height, celsius);
+    let mut image = ThermalImage::new(format, width, height, celsius);
     image.params = params;
     image.atm_trans = tau(params.distance, params.air, params.humidity);
     image.radiometry = Some(Arc::new(Radiometry { counts, planck }));
@@ -91,6 +95,9 @@ fn raw_counts(rec: &[u8]) -> Result<(usize, usize, Vec<u16>), Error> {
     if let Some(at) = find(rec, PNG_SIGNATURE, 0) {
         return png_counts(&rec[at..]);
     }
+    if rec.get(0x20..0x22) == Some(&[0xff, 0xd8]) {
+        return jpegls_counts(&rec[0x20..]);
+    }
     let b = Bytes::le(rec);
     let b = b.order(b.u16(0)? < 0x0100);
     let (w, h) = (b.u16(2)? as usize, b.u16(4)? as usize);
@@ -118,4 +125,31 @@ fn png_counts(png: &[u8]) -> Result<(usize, usize, Vec<u16>), Error> {
     let counts =
         buf[..w * h * 2].chunks_exact(2).map(|p| u16::from_le_bytes([p[0], p[1]])).collect();
     Ok((w, h, counts))
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn jpegls_counts(data: &[u8]) -> Result<(usize, usize, Vec<u16>), Error> {
+    let fail = |e: charls::Error| Error::new(format!("JPEG-LS: {e}"));
+    let info = charls::CharLS::default().get_frame_info(data).map_err(fail)?;
+    let (w, h) = (info.width as usize, info.height as usize);
+    if w == 0
+        || h == 0
+        || w > 4096
+        || h > 4096
+        || info.bits_per_sample != 16
+        || info.component_count != 1
+    {
+        return Err(Error::new("expected a 16-bit grayscale thermal JPEG-LS frame"));
+    }
+    let bytes = charls::CharLS::default().decode(data).map_err(fail)?;
+    if bytes.len() != w * h * 2 {
+        return Err(Error::new("JPEG-LS pixel count does not match frame dimensions"));
+    }
+    let counts = bytes.chunks_exact(2).map(|p| u16::from_ne_bytes([p[0], p[1]])).collect();
+    Ok((w, h, counts))
+}
+
+#[cfg(target_arch = "wasm32")]
+fn jpegls_counts(_: &[u8]) -> Result<(usize, usize, Vec<u16>), Error> {
+    Err(Error::new("JPEG-LS CSQ videos currently require the desktop version of ThermView"))
 }

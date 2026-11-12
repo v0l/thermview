@@ -35,6 +35,7 @@ pub struct Doc {
     pub overlays: Overlays,
     pub points: Vec<Point>,
     pub revision: u64,
+    pub video: Option<crate::video::Video>,
     next_id: u32,
 }
 
@@ -61,8 +62,39 @@ impl Doc {
             overlays: Overlays::default(),
             points: Vec::new(),
             revision: 0,
+            video: None,
             next_id: 0,
         }
+    }
+
+    pub fn from_video(
+        video: crate::video::Video,
+        name: &str,
+        modified: Option<String>,
+    ) -> Result<Doc, crate::Error> {
+        let mut doc = Doc::new(video.frame(0)?, name, modified);
+        doc.video = Some(video);
+        Ok(doc)
+    }
+
+    pub fn seek(&mut self, index: usize) -> Result<(), crate::Error> {
+        let Some(video) = &self.video else { return Ok(()) };
+        if index == video.current {
+            return Ok(());
+        }
+        let source = video.frame(index)?;
+        let params = self.image.params;
+        let adjusted = params != self.source.params;
+        self.image = if adjusted { source.recompute(params) } else { source.clone() };
+        self.source = source;
+        self.points.retain(|p| p.x < self.image.width && p.y < self.image.height);
+        let auto_range = video.auto_range;
+        self.video.as_mut().unwrap().current = index;
+        self.revision += 1;
+        if auto_range {
+            self.auto_range();
+        }
+        Ok(())
     }
 
     pub fn params(&self) -> Params {

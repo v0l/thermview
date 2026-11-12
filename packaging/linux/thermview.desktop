@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=ThermView
+Comment=View radiometric thermal images and CSQ videos
+Exec=thermview %f
+Icon=thermview
+Terminal=false
+Categories=Graphics;
+MimeType=image/jpeg;application/x-flir-csq;application/x-infiray-irg;
+Keywords=thermal;infrared;temperature;FLIR;CSQ;
+StartupNotify=true

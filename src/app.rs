@@ -46,9 +46,17 @@ impl App {
             Ok(l) => l,
             Err(e) => return self.fail(e),
         };
-        match crate::parse(&loaded.bytes, Some(&loaded.name)) {
-            Ok(img) => {
-                self.doc = Some(Doc::new(img, &loaded.name, loaded.modified));
+        let is_video = loaded.name.to_ascii_lowercase().ends_with(".csq");
+        let result = if is_video {
+            crate::video::Video::open(loaded.bytes)
+                .and_then(|v| Doc::from_video(v, &loaded.name, loaded.modified))
+        } else {
+            crate::parse(&loaded.bytes, Some(&loaded.name))
+                .map(|img| Doc::new(img, &loaded.name, loaded.modified))
+        };
+        match result {
+            Ok(doc) => {
+                self.doc = Some(doc);
                 self.path = loaded.path;
                 self.texture = None;
                 self.pointer = None;
@@ -77,7 +85,7 @@ impl App {
                 .or_else(|| std::env::current_dir().ok())
                 .unwrap_or_default();
             self.browser =
-                Some(Browser::new("open a thermal image", dir).suffixes(&host::SUFFIXES));
+                Some(Browser::new("open a thermal image or video", dir).suffixes(&host::SUFFIXES));
         }
         #[cfg(target_arch = "wasm32")]
         self.picker.pick(_ctx);
@@ -129,7 +137,7 @@ impl App {
             Line::new().legend("thermview").value(name).show(ui);
             if ui
                 .add(Key::new("open").outline(VALUE))
-                .on_hover_text("open a thermal image, ctrl+O")
+                .on_hover_text("open a thermal image or video, ctrl+O")
                 .clicked()
             {
                 self.open(&ctx);
@@ -144,7 +152,7 @@ impl App {
                 }
                 if ui
                     .add(Key::new("clear").outline(VALUE))
-                    .on_hover_text("close this image")
+                    .on_hover_text("close this file")
                     .clicked()
                 {
                     self.doc = None;
@@ -288,6 +296,180 @@ impl App {
         });
     }
 
+    fn playback(&mut self, ctx: &egui::Context) {
+        let Some(doc) = &mut self.doc else { return };
+        let Some(video) = &mut doc.video else { return };
+        let now = ctx.input(|i| i.time);
+        let keyboard = !ctx.egui_wants_keyboard_input();
+        if keyboard && ctx.input(|i| i.key_pressed(egui::Key::Space)) {
+            video.playing = !video.playing;
+            video.last_tick = Some(now);
+            if video.playing && video.current + 1 == video.len() {
+                if let Err(e) = doc.seek(0) {
+                    self.fail(e.to_string());
+                }
+                return;
+            }
+        }
+        let mut target = video.current;
+        if keyboard {
+            if ctx.input(|i| i.key_pressed(egui::Key::ArrowLeft)) {
+                target = target.saturating_sub(1);
+                video.playing = false;
+            }
+            if ctx.input(|i| i.key_pressed(egui::Key::ArrowRight)) {
+                target = (target + 1).min(video.len() - 1);
+                video.playing = false;
+            }
+            if ctx.input(|i| i.key_pressed(egui::Key::Home)) {
+                target = 0;
+                video.playing = false;
+            }
+            if ctx.input(|i| i.key_pressed(egui::Key::End)) {
+                target = video.len() - 1;
+                video.playing = false;
+            }
+        }
+        if video.playing {
+            let last_frame = video.len() - 1;
+            let last = video.last_tick.get_or_insert(now);
+            let steps = ((now - *last) * video.fps).floor().max(0.0) as usize;
+            if steps > 0 {
+                target = (target.saturating_add(steps)).min(last_frame);
+                *last += steps as f64 / video.fps;
+            }
+            if target + 1 == video.len() {
+                video.playing = false;
+            }
+            ctx.request_repaint_after(std::time::Duration::from_secs_f64(1.0 / video.fps));
+        } else {
+            video.last_tick = None;
+        }
+        if let Err(e) = doc.seek(target) {
+            doc.video.as_mut().unwrap().playing = false;
+            self.fail(e.to_string());
+        }
+    }
+
+    fn timeline(&mut self, ui: &mut Ui) {
+        let Some(doc) = &mut self.doc else { return };
+        let Some(video) = &mut doc.video else { return };
+        let mut target = video.current;
+        ui.horizontal(|ui| {
+            if ui.add(Key::new("|<").outline(VALUE)).on_hover_text("first frame · Home").clicked()
+            {
+                target = 0;
+                video.playing = false;
+            }
+            if ui.add(Key::new("<").outline(VALUE)).on_hover_text("previous frame · Left").clicked()
+            {
+                target = target.saturating_sub(1);
+                video.playing = false;
+            }
+            if ui
+                .add(Key::new(if video.playing { "pause" } else { "play" }).outline(READOUT))
+                .on_hover_text("play / pause · Space")
+                .clicked()
+            {
+                video.playing = !video.playing;
+                video.last_tick = Some(ui.input(|i| i.time));
+                if video.playing && target + 1 == video.len() {
+                    target = 0;
+                }
+                ui.ctx().request_repaint();
+            }
+            if ui.add(Key::new(">").outline(VALUE)).on_hover_text("next frame · Right").clicked() {
+                target = (target + 1).min(video.len() - 1);
+                video.playing = false;
+            }
+            if ui.add(Key::new(">|").outline(VALUE)).on_hover_text("last frame · End").clicked() {
+                target = video.len() - 1;
+                video.playing = false;
+            }
+            ui.label(
+                egui::RichText::new(format!("FRAME {} / {}", video.current + 1, video.len()))
+                    .font(figure(12.0))
+                    .color(VALUE),
+            );
+            ui.label(
+                egui::RichText::new(format!(
+                    "MIN {}    MAX {}",
+                    doc.unit.reading(doc.image.stats.min.celsius),
+                    doc.unit.reading(doc.image.stats.max.celsius)
+                ))
+                .font(figure(12.0))
+                .color(TRACE),
+            );
+            if toggle(ui, "auto range", video.auto_range)
+                .on_hover_text("fit the palette to each frame")
+                .clicked()
+            {
+                video.auto_range = !video.auto_range;
+            }
+            ui.add(
+                egui::DragValue::new(&mut video.fps).range(1.0..=1000.0).speed(1.0).suffix(" fps"),
+            )
+            .on_hover_text(if video.estimated_fps {
+                "playback rate · metadata unavailable, defaults to 30 fps"
+            } else {
+                "playback frame rate"
+            });
+        });
+        ui.add_space(4.0);
+        let (rect, response) =
+            ui.allocate_exact_size(vec2(ui.available_width(), 48.0), Sense::click_and_drag());
+        let track = rect.shrink2(vec2(8.0, 0.0));
+        if (response.clicked() || response.dragged())
+            && let Some(at) = response.interact_pointer_pos()
+        {
+            let fraction = ((at.x - track.left()) / track.width().max(1.0)).clamp(0.0, 1.0);
+            target = (fraction as f64 * (video.len() - 1) as f64).round() as usize;
+            video.playing = false;
+        }
+        let p = ui.painter();
+        p.rect_filled(rect, 2.0, WELL);
+        for tick in 0..=10 {
+            let fraction = tick as f32 / 10.0;
+            let x = track.left() + track.width() * fraction;
+            p.line_segment(
+                [pos2(x, rect.top() + 19.0), pos2(x, rect.bottom() - 5.0)],
+                Stroke::new(1.0, ETCH),
+            );
+            let frame = (fraction as f64 * (video.len() - 1) as f64).round() as usize;
+            p.text(
+                pos2(x, rect.top() + 4.0),
+                if tick == 10 { Align2::RIGHT_TOP } else { Align2::LEFT_TOP },
+                format!("{}", frame + 1),
+                figure(10.0),
+                VALUE,
+            );
+        }
+        let fraction = target as f32 / (video.len() - 1).max(1) as f32;
+        let x = track.left() + track.width() * fraction;
+        p.rect_filled(
+            Rect::from_min_max(pos2(track.left(), rect.top() + 27.0), pos2(x, rect.bottom() - 5.0)),
+            0.0,
+            READOUT.gamma_multiply(0.18),
+        );
+        p.line_segment(
+            [pos2(x, rect.top() + 17.0), pos2(x, rect.bottom())],
+            Stroke::new(2.0, READOUT),
+        );
+        p.add(egui::Shape::convex_polygon(
+            vec![
+                pos2(x - 5.0, rect.top() + 17.0),
+                pos2(x + 5.0, rect.top() + 17.0),
+                pos2(x, rect.top() + 23.0),
+            ],
+            READOUT,
+            Stroke::NONE,
+        ));
+        response.on_hover_text("drag to scrub · Left / Right to step · Space to play");
+        if let Err(e) = doc.seek(target) {
+            self.fail(e.to_string());
+        }
+    }
+
     fn welcome(&mut self, ui: &mut Ui) {
         let hovering = ui.ctx().input(|i| !i.raw.hovered_files.is_empty());
         let ctx = ui.ctx().clone();
@@ -298,7 +480,7 @@ impl App {
                 ui,
                 Some(if hovering { READOUT } else { ETCH }),
                 |ui| {
-                    Line::new().legend("open a thermal image").show(ui);
+                    Line::new().legend("open a thermal image or video").show(ui);
                 },
                 |ui| {
                     ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
@@ -310,7 +492,7 @@ impl App {
                         ui.add_space(4.0);
                         reading(ui, "infiray", "IRG from C200, C210, P200, Autel Evo II Dual");
                         reading(ui, "hikmicro", "JPEG from Pocket2, SP60");
-                        reading(ui, "flir", "R-JPEG from E, T, A and B series, AFF .img");
+                        reading(ui, "flir", "R-JPEG, AFF .img and CSQ video");
                         reading(ui, "dji", "R-JPEG from the Mavic 2 Enterprise Advanced");
                         ui.add_space(6.0);
                         if ui.add(Key::new("open").solid(READOUT)).clicked() {
@@ -621,6 +803,7 @@ impl App {
     pub fn show(&mut self, ui: &mut Ui) {
         let ctx = ui.ctx().clone();
         self.poll_open(&ctx);
+        self.playback(&ctx);
         egui::Panel::top("header")
             .frame(egui::Frame::NONE.fill(CHASSIS).inner_margin(egui::Margin {
                 left: 12,
@@ -642,6 +825,11 @@ impl App {
                         });
                     });
                 });
+        }
+        if self.doc.as_ref().is_some_and(|d| d.video.is_some()) {
+            egui::Panel::bottom("video timeline")
+                .frame(egui::Frame::NONE.fill(CHASSIS).inner_margin(egui::Margin::symmetric(12, 8)))
+                .show(ui, |ui| self.timeline(ui));
         }
         if self.doc.is_some() {
             egui::Panel::left("controls")

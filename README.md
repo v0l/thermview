@@ -18,6 +18,7 @@ and starts it alongside the other bench tools.
 | Feature | Description |
 |---|---|
 | **Multi-format parsing** | Detects IRG, Hikmicro JPEG, FLIR R-JPEG, FLIR AFF and DJI R-JPEG from the bytes. Every parser returns the same `ThermalImage`, so a new format is one parser. |
+| **CSQ video (desktop)** | Open FLIR `.csq` sequences, scrub a bottom timeline, step frames and play/pause with live min/max temperatures |
 | **9 colour palettes** | Inferno, Iron, Jet, Hot, Lava, Plasma, Rainbow, Arctic, Grayscale, with inversion |
 | **Colour bar** | A legend painted from the same colour function as the image, with draggable window handles, ticks in the chosen unit and the out-of-window part dimmed |
 | **Mappings** | Linear, logarithmic and histogram equalisation (1024-bin CDF, rescaled to the window) |
@@ -35,7 +36,7 @@ and starts it alongside the other bench tools.
 
 ## Getting Started
 
-Needs Rust 1.92 or newer.
+Needs Rust 1.95 or newer. Desktop builds also need CMake and a C++ compiler to build the bundled CharLS JPEG-LS decoder.
 
 ```bash
 git clone https://github.com/v0l/thermview.git
@@ -52,6 +53,33 @@ thermview render photo.jpg -o out.png --palette iron --scale 4 --range 20:40 --p
 ```
 
 `render` takes `--fahrenheit`, `--mapping linear|log|equalise`, `--overscan clip|hide|below|above`, `--invert`, `--bare` (no overlays) and any number of `--point X,Y`.
+
+### Debian / Ubuntu installer
+
+Linux releases include `thermview_VERSION_amd64.deb` and `thermview_VERSION_arm64.deb`. Download the package for your machine and install it with:
+
+```bash
+sudo apt install ./thermview_0.1.3-1_amd64.deb
+```
+
+This installs the `thermview` command, a ThermView app-menu entry, its icon and CSQ/IRG file associations. Open it from the app menu or use **Open With → ThermView** on a CSQ file. Remove it with `sudo apt remove thermview`.
+
+To build a package locally on Debian or Ubuntu, install Rust 1.95+ plus the packaging tools:
+
+```bash
+sudo apt install build-essential cmake pkg-config libwayland-dev libxkbcommon-dev dpkg-dev python3
+packaging/linux/build-deb.sh
+```
+
+The `.deb` and its SHA-256 checksum are written to `dist/`. Build natively on x86-64 for `amd64`, or ARM64 for `arm64`. To package an existing release binary, set `THERMVIEW_BINARY=/path/to/thermview` before running the script. Shared-library version requirements are calculated from that binary, so build on the oldest distribution you want to support. The release workflow uses Ubuntu 22.04 runners; a package built locally on a newer distribution may require newer libraries.
+
+### CSQ videos
+
+Open or drop a `.csq` file in the desktop app. A compact timeline appears at the bottom only for videos. Drag anywhere on its ruler to scrub; use the transport buttons or **Left/Right** to step a frame, **Home/End** to jump to the ends, and **Space** to play or pause. Playback stops at the last frame.
+
+Min/max markers, spot readings and the temperature range update for the displayed frame. **Auto range** fits the palette to each frame; turn it off to use one temperature window across the clip. Palette, units and measurement points persist while scrubbing. Export saves the current frame with its frame number in the PNG filename.
+
+Frames are indexed once and decoded on demand. The encoded file stays in memory, but decoded rasters are only retained for the current frame. The playback rate comes from camera metadata when available; otherwise it defaults to an editable 30 fps. The ruler uses frame numbers so it remains precise when recording timing is unavailable. Compressed JPEG-LS CSQ decoding uses bundled [CharLS](https://github.com/team-charls/charls) on desktop; it is currently unavailable in the WebAssembly build. No FFmpeg or FLIR software is required.
 
 ### Web
 
@@ -231,7 +259,7 @@ See [`plan.md`](plan.md) for the full market research and feature gap analysis a
 ### Phase 3 — Power Tools
 
 - [ ] **Batch processing** — apply palette, params, measurements to multiple files; bulk export
-- [ ] **Video frame extraction** — step through radiometric video sequences
+- [x] **Video frame extraction** — scrub and step through FLIR CSQ sequences on desktop
 - [ ] **Custom report templates** — user-editable layout
 
 ---
