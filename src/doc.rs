@@ -35,6 +35,7 @@ pub struct Doc {
     pub overlays: Overlays,
     pub points: Vec<Point>,
     pub revision: u64,
+    pub measurement: crate::measure::Measurement,
     pub video: Option<crate::video::Video>,
     next_id: u32,
 }
@@ -62,6 +63,7 @@ impl Doc {
             overlays: Overlays::default(),
             points: Vec::new(),
             revision: 0,
+            measurement: crate::measure::Measurement::default(),
             video: None,
             next_id: 0,
         }
@@ -105,6 +107,7 @@ impl Doc {
 
     pub fn set_params(&mut self, params: Params) {
         if params != self.image.params && self.image.recomputable() {
+            self.measurement.invalidate();
             self.image = self.source.recompute(params);
             self.revision += 1;
         }

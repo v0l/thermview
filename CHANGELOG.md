@@ -6,6 +6,13 @@ All notable changes to thermview are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.1.8] - 2026-11-12
+
+### Added
+- A Measure activity for marking inclusive video ranges with I/O or buttons, with marks displayed on the timeline.
+- Cancellable range analysis with progress, hottest/coldest frame and pixel locations, average frame maximum/minimum, and an overall pixel mean.
+- Buttons to jump to measured extrema, calibration-aware results and invalidation, and explicit errors for incomplete analysis.
+
 ## [0.1.7] - 2026-11-12
 
 ### Added

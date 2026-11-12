@@ -90,7 +90,12 @@ struct NavigatorDrag {
 
 /// Render the detailed ruler and full-clip navigator. Changing the viewport
 /// returns no seek; only interacting with the detailed ruler moves the playhead.
-pub fn show(ui: &mut Ui, view: &mut TimelineView, current: usize) -> Option<usize> {
+pub fn show(
+    ui: &mut Ui,
+    view: &mut TimelineView,
+    current: usize,
+    marks: (Option<usize>, Option<usize>),
+) -> Option<usize> {
     let mut target = None;
     let (rect, response) =
         ui.allocate_exact_size(vec2(ui.available_width(), 48.0), Sense::click_and_drag());
@@ -102,6 +107,25 @@ pub fn show(ui: &mut Ui, view: &mut TimelineView, current: usize) -> Option<usiz
     }
     let p = ui.painter();
     p.rect_filled(rect, 2.0, WELL);
+    if let (Some(start), Some(end)) = marks
+        && start <= end
+    {
+        let left = start.max(view.first);
+        let right = end.min(view.last);
+        if left <= right {
+            let x1 = track.left() + track.width() * (left - view.first) as f32 / view.span() as f32;
+            let x2 =
+                track.left() + track.width() * (right - view.first) as f32 / view.span() as f32;
+            p.rect_filled(
+                Rect::from_min_max(
+                    pos2(x1, rect.top() + 25.0),
+                    pos2(x2.max(x1 + 2.0), rect.bottom()),
+                ),
+                0.0,
+                TRACE.gamma_multiply(0.18),
+            );
+        }
+    }
     // Integer ticks adapt to zoom and width, avoiding duplicate frame labels.
     let intervals = ((track.width() / 100.0).floor() as usize).max(1).min(view.span());
     let mut previous = None;
@@ -123,6 +147,25 @@ pub fn show(ui: &mut Ui, view: &mut TimelineView, current: usize) -> Option<usiz
             figure(10.0),
             VALUE,
         );
+    }
+    for (mark, name) in [(marks.0, "I"), (marks.1, "O")] {
+        if let Some(frame) = mark
+            && (view.first..=view.last).contains(&frame)
+        {
+            let x = track.left() + track.width() * (frame - view.first) as f32 / view.span() as f32;
+            p.line_segment(
+                [pos2(x, rect.top() + 22.0), pos2(x, rect.bottom())],
+                Stroke::new(1.0, TRACE),
+            );
+            let is_end = name == "O";
+            p.text(
+                pos2(x + if is_end { -3.0 } else { 3.0 }, rect.bottom() - 3.0),
+                if is_end { Align2::RIGHT_BOTTOM } else { Align2::LEFT_BOTTOM },
+                name,
+                figure(10.0),
+                TRACE,
+            );
+        }
     }
     let current = target.unwrap_or(current);
     if (view.first..=view.last).contains(&current) {
@@ -149,11 +192,16 @@ pub fn show(ui: &mut Ui, view: &mut TimelineView, current: usize) -> Option<usiz
     response
         .on_hover_text("drag to scrub the visible frames · Left / Right to step · Space to play");
     ui.add_space(2.0);
-    navigator(ui, view, current);
+    navigator(ui, view, current, marks);
     target
 }
 
-fn navigator(ui: &mut Ui, view: &mut TimelineView, current: usize) {
+fn navigator(
+    ui: &mut Ui,
+    view: &mut TimelineView,
+    current: usize,
+    marks: (Option<usize>, Option<usize>),
+) {
     let (rect, response) =
         ui.allocate_exact_size(vec2(ui.available_width(), 20.0), Sense::click_and_drag());
     let track = rect.shrink2(vec2(8.0, 2.0));
@@ -255,6 +303,10 @@ fn navigator(ui: &mut Ui, view: &mut TimelineView, current: usize) {
             [pos2(x, thumb.top() + 3.0), pos2(x, thumb.bottom() - 3.0)],
             Stroke::new(2.0, READOUT),
         );
+    }
+    for frame in [marks.0, marks.1].into_iter().flatten() {
+        let x = x_at(frame);
+        p.line_segment([pos2(x, track.top()), pos2(x, track.bottom())], Stroke::new(1.0, TRACE));
     }
     let x = x_at(current);
     p.line_segment([pos2(x, track.top()), pos2(x, track.bottom())], Stroke::new(1.0, READOUT));

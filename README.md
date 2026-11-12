@@ -59,7 +59,7 @@ thermview render photo.jpg -o out.png --palette iron --scale 4 --range 20:40 --p
 Linux releases include `thermview_VERSION_amd64.deb` and `thermview_VERSION_arm64.deb`. Download the package for your machine and install it with:
 
 ```bash
-sudo apt install ./thermview_0.1.7-1_amd64.deb
+sudo apt install ./thermview_0.1.8-1_amd64.deb
 ```
 
 This installs the `thermview` command, a ThermView app-menu entry, its icon and CSQ/IRG file associations. Open it from the app menu or use **Open With → ThermView** on a CSQ file. Remove it with `sudo apt remove thermview`.
@@ -84,6 +84,14 @@ The zoom scroll bar below the ruler shows which part of the whole recording is v
 Min/max markers, spot readings and the temperature range update for the displayed frame. **Auto range** fits the palette to each frame; turn it off to use one temperature window across the clip. Palette, units and measurement points persist while scrubbing. Export saves the current frame with its frame number in the PNG filename.
 
 Frames are indexed once and decoded on demand. The encoded file stays in memory, but decoded rasters are only retained for the current frame. The playback rate comes from camera metadata when available; otherwise it defaults to an editable 30 fps. The ruler uses frame numbers so it remains precise when recording timing is unavailable. Compressed JPEG-LS CSQ decoding uses bundled [CharLS](https://github.com/team-charls/charls) on desktop; it is currently unavailable in the WebAssembly build. No FFmpeg or FLIR software is required.
+
+### Measure a video range
+
+Select **Measure** in the left activity bar. Scrub to the first frame and press **I** (or **Mark start**), then scrub to the last frame and press **O** (or **Mark end**). Both endpoints are included, and I/O marks appear on the timeline. Marking pauses playback. Press **Analyse range** to process every selected frame; progress and **Cancel** remain available while you use the viewer.
+
+Results show the hottest and coldest temperatures with their frame numbers and zero-based pixel locations, plus **Average max** (the mean of each frame's hottest reading), **Average min** (the mean of each frame's coldest reading), and **Overall mean** (all valid pixel temperatures across all selected frames, weighted equally per pixel). **Go to hottest/coldest** opens the corresponding frame. A single-frame range is valid. The time span is the first-to-last frame interval using the current playback frame rate.
+
+Analysis uses each frame's recorded calibration, or your current edited calibration when recalibrated. Changing calibration or either mark clears old results; changing the palette or display unit does not. Invalid temperatures are excluded. A frame with no valid readings or a decoding error stops the analysis and reports an error, rather than presenting a partial summary. **Reset** clears marks and results. I/O shortcuts are ignored while editing text or numeric fields.
 
 ### Web
 

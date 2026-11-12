@@ -17,6 +17,7 @@ const PRESETS: [(f64, f64); 3] = [(20.0, 40.0), (0.0, 80.0), (-10.0, 50.0)];
 enum Sidebar {
     Explorer,
     Controls,
+    Measure,
 }
 
 pub struct App {
@@ -230,6 +231,7 @@ impl App {
         for (panel, caption, help) in [
             (Sidebar::Explorer, "FILES", "Explorer · Ctrl+Shift+E"),
             (Sidebar::Controls, "LOOK", "Image controls · palette, range and display"),
+            (Sidebar::Measure, "MEASURE", "Video range measurements · I / O to mark frames"),
         ] {
             let (rect, response) = ui.allocate_exact_size(vec2(52.0, 58.0), Sense::click());
             let on = self.sidebar == Some(panel);
@@ -265,6 +267,18 @@ impl App {
                     stroke,
                     StrokeKind::Inside,
                 );
+            } else if panel == Sidebar::Measure {
+                p.line_segment([center + vec2(-11.0, 8.0), center + vec2(11.0, 8.0)], stroke);
+                for (x, height) in [(-7.0, 9.0), (0.0, 20.0), (7.0, 14.0)] {
+                    p.rect_filled(
+                        Rect::from_min_size(
+                            center + vec2(x - 2.0, 8.0 - height),
+                            vec2(4.0, height),
+                        ),
+                        0.0,
+                        colour,
+                    );
+                }
             } else {
                 for (y, x) in [(-8.0, -4.0), (0.0, 5.0), (8.0, -1.0)] {
                     p.line_segment([center + vec2(-11.0, y), center + vec2(11.0, y)], stroke);
@@ -289,10 +303,10 @@ impl App {
     fn sidebar(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
             Line::new()
-                .legend(if self.sidebar == Some(Sidebar::Explorer) {
-                    "explorer"
-                } else {
-                    "image controls"
+                .legend(match self.sidebar {
+                    Some(Sidebar::Explorer) => "explorer",
+                    Some(Sidebar::Measure) => "measure",
+                    _ => "image controls",
                 })
                 .show(ui);
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -329,6 +343,11 @@ impl App {
                         self.open(&ui.ctx().clone());
                     }
                 }
+            }
+            Some(Sidebar::Measure) => {
+                egui::ScrollArea::vertical()
+                    .id_salt("measure scroll")
+                    .show(ui, |ui| self.measure_panel(ui));
             }
             None => {}
         }
@@ -369,6 +388,218 @@ impl App {
                 self.load(&ui.ctx().clone(), host::read(&path));
             } else {
                 self.fail(format!("Cannot read {}: not a regular file", path.display()));
+            }
+        }
+    }
+
+    fn measure_input(&mut self, ctx: &egui::Context) {
+        if ctx.text_edit_focused() || ctx.input(|i| i.modifiers.any()) {
+            return;
+        }
+        let start = ctx.input(|i| i.key_pressed(egui::Key::I));
+        let end = ctx.input(|i| i.key_pressed(egui::Key::O));
+        if !(start || end) {
+            return;
+        }
+        let Some(doc) = &mut self.doc else { return };
+        let Some(video) = &mut doc.video else { return };
+        video.playing = false;
+        if start {
+            doc.measurement.mark_start(video.current);
+        }
+        if end {
+            doc.measurement.mark_end(video.current);
+        }
+        self.sidebar = Some(Sidebar::Measure);
+        self.last_sidebar = Sidebar::Measure;
+    }
+
+    fn measure_tick(&mut self, ctx: &egui::Context) {
+        if let Some(doc) = &mut self.doc
+            && let Some(video) = &doc.video
+        {
+            doc.measurement.advance(video);
+            if doc.measurement.running() {
+                ctx.request_repaint();
+            }
+        }
+    }
+
+    fn measure_panel(&mut self, ui: &mut Ui) {
+        let Some(doc) = &mut self.doc else {
+            hint(ui, "open a video to measure a frame range");
+            return;
+        };
+        let Some(video) = &mut doc.video else {
+            hint(ui, "range measurements are available for videos");
+            return;
+        };
+        let mut seek = None;
+        let measurement = &mut doc.measurement;
+        section(ui, "selected range", "endpoints included", |ui| {
+            ui.horizontal(|ui| {
+                if ui
+                    .add(Key::new("mark start").outline(READOUT))
+                    .on_hover_text("mark the current frame as the start · I")
+                    .clicked()
+                {
+                    video.playing = false;
+                    measurement.mark_start(video.current);
+                }
+                if ui
+                    .add(Key::new("mark end").outline(READOUT))
+                    .on_hover_text("mark the current frame as the end · O")
+                    .clicked()
+                {
+                    video.playing = false;
+                    measurement.mark_end(video.current);
+                }
+            });
+            reading(
+                ui,
+                "start · I",
+                measurement
+                    .start
+                    .map(|f| format!("frame {}", f + 1))
+                    .unwrap_or_else(|| "not marked".into()),
+            );
+            reading(
+                ui,
+                "end · O",
+                measurement
+                    .end
+                    .map(|f| format!("frame {}", f + 1))
+                    .unwrap_or_else(|| "not marked".into()),
+            );
+            ui.horizontal(|ui| {
+                if ui
+                    .add_enabled(
+                        measurement.start.is_some(),
+                        Key::new("go to start").outline(VALUE),
+                    )
+                    .clicked()
+                {
+                    seek = measurement.start;
+                }
+                if ui
+                    .add_enabled(measurement.end.is_some(), Key::new("go to end").outline(VALUE))
+                    .clicked()
+                {
+                    seek = measurement.end;
+                }
+            });
+            if let (Some(start), Some(end)) = (measurement.start, measurement.end) {
+                if start > end {
+                    note(ui, "End is before start. Re-mark a frame or swap the marks.", FAULT);
+                    if ui.add(Key::new("swap marks").outline(VALUE)).clicked() {
+                        measurement.mark_start(end);
+                        measurement.mark_end(start);
+                    }
+                } else {
+                    reading(ui, "frames", (end - start + 1).to_string());
+                    reading(
+                        ui,
+                        "time span",
+                        format!(
+                            "{:.3} s{}",
+                            (end - start) as f64 / video.fps,
+                            if video.estimated_fps { " (estimated)" } else { "" }
+                        ),
+                    );
+                }
+            }
+            ui.horizontal(|ui| {
+                if measurement.running() {
+                    if ui.add(Key::new("cancel").outline(FAULT)).clicked() {
+                        measurement.cancel();
+                    }
+                } else if ui
+                    .add_enabled(
+                        measurement.valid_range(),
+                        Key::new("analyse range").solid(READOUT),
+                    )
+                    .clicked()
+                {
+                    video.playing = false;
+                    let params =
+                        (doc.image.params != doc.source.params).then_some(doc.image.params);
+                    measurement.begin(video.len(), params);
+                    ui.ctx().request_repaint();
+                }
+                if ui
+                    .add(Key::new("reset").outline(VALUE))
+                    .on_hover_text("clear range marks and measurement results")
+                    .clicked()
+                {
+                    measurement.clear();
+                }
+            });
+        });
+        ui.add_space(8.0);
+        if let Some((done, total)) = measurement.progress() {
+            ui.add(
+                egui::ProgressBar::new(done as f32 / total as f32)
+                    .text(format!("{done} / {total} frames")),
+            );
+            hint(ui, "analysing every frame; the current view stays in place");
+        }
+        if let Some(error) = &measurement.error {
+            note(ui, error, FAULT);
+        }
+        if let Some(result) = &measurement.result {
+            let unit = doc.unit;
+            section(ui, "hottest", "highest temperature in the selected frames", |ui| {
+                let p = result.hottest;
+                hero(
+                    ui,
+                    &format!("frame {} · pixel {}, {}", p.frame + 1, p.spot.x, p.spot.y),
+                    &unit.figure(p.spot.celsius),
+                    unit.symbol(),
+                    READOUT,
+                );
+                if ui.add(Key::new("go to hottest").outline(READOUT)).clicked() {
+                    seek = Some(p.frame);
+                }
+            });
+            ui.add_space(8.0);
+            section(ui, "coldest", "lowest temperature in the selected frames", |ui| {
+                let p = result.coldest;
+                hero(
+                    ui,
+                    &format!("frame {} · pixel {}, {}", p.frame + 1, p.spot.x, p.spot.y),
+                    &unit.figure(p.spot.celsius),
+                    unit.symbol(),
+                    TRACE,
+                );
+                if ui.add(Key::new("go to coldest").outline(TRACE)).clicked() {
+                    seek = Some(p.frame);
+                }
+            });
+            ui.add_space(8.0);
+            section(ui, "averages", "frame extremes and pixel mean", |ui| {
+                reading(ui, "average max", unit.reading(result.average_max as f32));
+                hint(ui, "mean of the hottest reading in each frame");
+                reading(ui, "average min", unit.reading(result.average_min as f32));
+                hint(ui, "mean of the coldest reading in each frame");
+                reading(ui, "overall mean", unit.reading(result.mean as f32));
+                hint(ui, "mean of all valid pixel temperatures across the range");
+            });
+            ui.add_space(8.0);
+            hint(
+                ui,
+                if result.edited_calibration {
+                    "uses your edited calibration; recalibrating clears these results"
+                } else {
+                    "uses each frame's recorded calibration; invalid temperatures are excluded"
+                },
+            );
+        } else if !measurement.running() && measurement.error.is_none() {
+            hint(ui, "mark a start with I and an end with O, then analyse the range");
+        }
+        if let Some(frame) = seek {
+            video.playing = false;
+            if let Err(e) = doc.seek(frame) {
+                self.fail(e.to_string());
             }
         }
     }
@@ -632,7 +863,12 @@ impl App {
             }
         });
         ui.add_space(4.0);
-        if let Some(frame) = crate::timeline::show(ui, &mut video.view, video.current) {
+        if let Some(frame) = crate::timeline::show(
+            ui,
+            &mut video.view,
+            video.current,
+            (doc.measurement.start, doc.measurement.end),
+        ) {
             target = frame;
             video.playing = false;
         }
@@ -974,7 +1210,9 @@ impl App {
     pub fn show(&mut self, ui: &mut Ui) {
         let ctx = ui.ctx().clone();
         self.poll_open(&ctx);
+        self.measure_input(&ctx);
         self.playback(&ctx);
+        self.measure_tick(&ctx);
         egui::Panel::top("header")
             .frame(egui::Frame::NONE.fill(CHASSIS).inner_margin(egui::Margin {
                 left: 12,

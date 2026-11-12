@@ -10,6 +10,7 @@ pub mod formats;
 pub mod headless;
 pub mod host;
 pub mod image;
+pub mod measure;
 pub mod overlay;
 pub mod palette;
 pub mod planck;

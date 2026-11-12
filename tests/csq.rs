@@ -318,3 +318,238 @@ fn maximum_zoom_stays_precise_and_new_video_resets_the_view() {
     let video = h.app.doc.as_ref().unwrap().video.as_ref().unwrap();
     assert_eq!((video.view.first(), video.view.last(), video.current), (0, 1, 0));
 }
+
+#[test]
+fn inclusive_measurements_use_all_frames_without_moving_the_view() {
+    let mut doc = Doc::from_video(Video::open(sequence()).unwrap(), "clip.csq", None).unwrap();
+    doc.seek(1).unwrap();
+    let before = doc.image.celsius.clone();
+    doc.measurement.mark_start(0);
+    doc.measurement.mark_end(1);
+    doc.measurement.begin(2, None);
+    while doc.measurement.running() {
+        doc.measurement.advance(doc.video.as_ref().unwrap());
+    }
+    let result = doc.measurement.result.as_ref().unwrap();
+    let a = doc.video.as_ref().unwrap().frame(0).unwrap();
+    let b = doc.video.as_ref().unwrap().frame(1).unwrap();
+    assert_eq!(result.frames, 2);
+    assert_eq!((result.start, result.end), (0, 1));
+    assert_eq!(result.hottest.frame, 1);
+    assert_eq!(result.coldest.frame, 0);
+    assert!(
+        (result.average_max - (a.stats.max.celsius as f64 + b.stats.max.celsius as f64) / 2.0)
+            .abs()
+            < 1e-6
+    );
+    let mean = a.celsius.iter().chain(&b.celsius).map(|&v| v as f64).sum::<f64>() / 96.0;
+    assert!((result.mean - mean).abs() < 1e-6);
+    assert_eq!(doc.image.celsius, before);
+    assert_eq!(doc.video.as_ref().unwrap().current, 1);
+    let mut params = doc.params();
+    params.emissivity = 0.8;
+    doc.set_params(params);
+    assert!(doc.measurement.result.is_none(), "recalibration must invalidate old results");
+    assert_eq!((doc.measurement.start, doc.measurement.end), (Some(0), Some(1)));
+    doc.measurement.begin(2, Some(params));
+    while doc.measurement.running() {
+        doc.measurement.advance(doc.video.as_ref().unwrap());
+    }
+    let result = doc.measurement.result.as_ref().unwrap();
+    let a = a.recompute(params);
+    let b = b.recompute(params);
+    assert!(result.edited_calibration);
+    assert!(
+        (result.average_max - (a.stats.max.celsius as f64 + b.stats.max.celsius as f64) / 2.0)
+            .abs()
+            < 1e-6
+    );
+    doc.measurement.mark_start(1);
+    doc.measurement.mark_end(1);
+    doc.measurement.begin(2, Some(params));
+    while doc.measurement.running() {
+        doc.measurement.advance(doc.video.as_ref().unwrap());
+    }
+    let result = doc.measurement.result.as_ref().unwrap();
+    assert_eq!(result.frames, 1);
+    assert_eq!(result.average_max, b.stats.max.celsius as f64);
+}
+
+#[test]
+fn a_bad_frame_aborts_measurement_instead_of_reporting_partial_results() {
+    let mut bytes = sequence();
+    let eoi = bytes.windows(2).rposition(|p| p == [0xff, 0xd9]).unwrap();
+    bytes[eoi + 1] = 0;
+    let video = Video::open(bytes).unwrap();
+    let mut measurement = thermview::measure::Measurement::default();
+    measurement.mark_start(0);
+    measurement.mark_end(1);
+    measurement.begin(video.len(), None);
+    while measurement.running() {
+        measurement.advance(&video);
+    }
+    assert!(measurement.result.is_none());
+    assert!(measurement.error.unwrap().contains("CSQ frame 2"));
+}
+
+#[test]
+fn measure_activity_marks_and_reports_the_selected_video_range() {
+    let mut h = zoom_harness();
+    h.click(h.find("MEASURE").unwrap().center());
+    h.click(h.find("MARK START").unwrap().center());
+    h.app.doc.as_mut().unwrap().seek(10).unwrap();
+    h.settle();
+    h.click(h.find("MARK END").unwrap().center());
+    assert_eq!(
+        (
+            h.app.doc.as_ref().unwrap().measurement.start,
+            h.app.doc.as_ref().unwrap().measurement.end
+        ),
+        (Some(0), Some(10))
+    );
+    assert!(h.find("I").is_some());
+    assert!(h.find("O").is_some());
+    h.click(h.find("ANALYSE RANGE").unwrap().center());
+    for _ in 0..8 {
+        h.frame(Vec::new());
+    }
+    let result = h.app.doc.as_ref().unwrap().measurement.result.as_ref().unwrap();
+    assert_eq!(result.frames, 11);
+    assert_eq!(result.hottest.frame, 10);
+    assert!(h.find("HOTTEST").is_some());
+    assert!(h.find("AVERAGE MAX").is_some());
+    h.click(h.find("GO TO COLDEST").unwrap().center());
+    assert_eq!(h.app.doc.as_ref().unwrap().video.as_ref().unwrap().current, 0);
+    assert!(h.app.doc.as_ref().unwrap().measurement.result.is_some());
+    std::fs::write(
+        std::path::Path::new(env!("CARGO_TARGET_TMPDIR")).join("csq-measure.png"),
+        h.png(),
+    )
+    .unwrap();
+    h.click(h.find("RESET").unwrap().center());
+    assert_eq!(
+        (
+            h.app.doc.as_ref().unwrap().measurement.start,
+            h.app.doc.as_ref().unwrap().measurement.end
+        ),
+        (None, None)
+    );
+    assert!(h.app.doc.as_ref().unwrap().measurement.result.is_none());
+}
+
+#[test]
+fn i_and_o_shortcuts_mark_visible_frames_and_ignore_text_fields() {
+    let mut h = zoom_harness();
+    // A focused toolbar button must not prevent marker shortcuts.
+    h.click(h.find("+").unwrap().center());
+    h.frame(vec![egui::Event::Key {
+        key: egui::Key::I,
+        physical_key: None,
+        pressed: true,
+        repeat: false,
+        modifiers: egui::Modifiers::NONE,
+    }]);
+    h.frame(vec![egui::Event::Key {
+        key: egui::Key::I,
+        physical_key: None,
+        pressed: false,
+        repeat: false,
+        modifiers: egui::Modifiers::NONE,
+    }]);
+    assert_eq!(h.app.doc.as_ref().unwrap().measurement.start, Some(0));
+    assert!(h.find("MARK END").is_some(), "shortcut opens Measure");
+    h.app.doc.as_mut().unwrap().seek(8).unwrap();
+    h.frame(vec![egui::Event::Key {
+        key: egui::Key::O,
+        physical_key: None,
+        pressed: true,
+        repeat: false,
+        modifiers: egui::Modifiers::NONE,
+    }]);
+    h.frame(vec![egui::Event::Key {
+        key: egui::Key::O,
+        physical_key: None,
+        pressed: false,
+        repeat: false,
+        modifiers: egui::Modifiers::NONE,
+    }]);
+    assert_eq!(h.app.doc.as_ref().unwrap().measurement.end, Some(8));
+    h.app.doc.as_mut().unwrap().add_point(1, 1);
+    h.settle();
+    let name = h
+        .texts()
+        .into_iter()
+        .find(|(text, rect)| text == "1" && rect.left() > 1200.0 && rect.top() < 450.0)
+        .expect("point name in the right panel")
+        .1;
+    h.click(name.center());
+    // The point-name text editor owns typed I/O rather than marking the range.
+    assert!(h.ctx.text_edit_focused());
+    h.app.doc.as_mut().unwrap().seek(9).unwrap();
+    h.frame(vec![egui::Event::Key {
+        key: egui::Key::I,
+        physical_key: None,
+        pressed: true,
+        repeat: false,
+        modifiers: egui::Modifiers::NONE,
+    }]);
+    assert_eq!(h.app.doc.as_ref().unwrap().measurement.start, Some(0));
+}
+
+#[test]
+fn range_analysis_can_be_cancelled_and_new_files_clear_marks() {
+    let mut h = zoom_harness();
+    h.click(h.find("MEASURE").unwrap().center());
+    h.click(h.find("MARK START").unwrap().center());
+    h.app.doc.as_mut().unwrap().seek(100).unwrap();
+    h.settle();
+    h.click(h.find("MARK END").unwrap().center());
+    h.click(h.find("ANALYSE RANGE").unwrap().center());
+    assert!(h.app.doc.as_ref().unwrap().measurement.running());
+    h.click(h.find("CANCEL").unwrap().center());
+    assert!(!h.app.doc.as_ref().unwrap().measurement.running());
+    assert!(h.app.doc.as_ref().unwrap().measurement.result.is_none());
+    assert_eq!(h.app.doc.as_ref().unwrap().measurement.end, Some(100));
+    h.app.load(
+        &h.ctx.clone(),
+        Ok(Loaded { name: "new.csq".into(), bytes: sequence(), modified: None, path: None }),
+    );
+    h.settle();
+    assert_eq!(
+        (
+            h.app.doc.as_ref().unwrap().measurement.start,
+            h.app.doc.as_ref().unwrap().measurement.end
+        ),
+        (None, None)
+    );
+}
+
+#[test]
+#[ignore = "set THERMVIEW_TEST_CSQ to the local recording; measures around frame 11148"]
+fn real_recording_range_measurement_crosses_the_padded_frame() {
+    let path = std::env::var("THERMVIEW_TEST_CSQ").unwrap();
+    let mut doc =
+        Doc::from_video(Video::open(std::fs::read(path).unwrap()).unwrap(), "recording.csq", None)
+            .unwrap();
+    doc.measurement.mark_start(11145);
+    doc.measurement.mark_end(11149);
+    doc.measurement.begin(doc.video.as_ref().unwrap().len(), None);
+    while doc.measurement.running() {
+        doc.measurement.advance(doc.video.as_ref().unwrap());
+    }
+    assert!(doc.measurement.error.is_none(), "{:?}", doc.measurement.error);
+    let result = doc.measurement.result.as_ref().unwrap();
+    assert_eq!(result.frames, 5);
+    assert!((11145..=11149).contains(&result.hottest.frame));
+    println!(
+        "Frames {}–{} inclusive: max {:.2} C on frame {}, average max {:.2} C, min {:.2} C, mean {:.2} C",
+        result.start + 1,
+        result.end + 1,
+        result.hottest.spot.celsius,
+        result.hottest.frame + 1,
+        result.average_max,
+        result.coldest.spot.celsius,
+        result.mean
+    );
+    assert_eq!(doc.video.as_ref().unwrap().current, 0);
+}
