@@ -43,11 +43,12 @@ Download the appropriate file from **[this fork's GitHub Releases](https://githu
 |---|---|
 | Debian/Ubuntu, Intel or AMD 64-bit | `thermview_VERSION_amd64.deb` |
 | Debian/Ubuntu, ARM64 | `thermview_VERSION_arm64.deb` |
+| Arch Linux and Arch-based distributions | Use the source-install instructions below; `.deb` is not an Arch package |
 | Windows, Intel or AMD 64-bit | `thermview-x86_64-pc-windows-msvc.msi` |
 | macOS, Apple silicon (M-series) | `thermview-aarch64-apple-darwin.dmg` |
 | macOS, Intel | `thermview-x86_64-apple-darwin.dmg` |
 
-**Installer availability:** merging changes into `master` does not publish downloads. The [release workflow](.github/workflows/release.yml) builds these packages when a version tag such as `v0.1.8` is pushed. A manual workflow run produces downloadable Actions artifacts, but does not publish a GitHub Release. If the release you need is not listed, use the source-install instructions below. Linux has been built and tested in this workspace. The Windows/macOS configuration is present, but native build and runtime verification on those platforms has not been performed here.
+**Installer availability:** merging changes into `master` does not publish downloads. The [release workflow](.github/workflows/release.yml) builds these packages when a version tag such as `v0.1.8` is pushed. A manual workflow run produces downloadable Actions artifacts, but does not publish a GitHub Release. If the release you need is not listed, use the source-install instructions below. Linux has been built and tested in this workspace. A successful Windows build confirms compilation and installer creation, but running the app on a Windows machine still needs verification; macOS needs a completed native build and runtime verification.
 
 ### Debian / Ubuntu
 
@@ -70,11 +71,46 @@ If an older launcher-managed installation is also present, `~/.local/bin/thermvi
 
 Packages built locally on a newer distribution may require newer system libraries. Release packages are configured to build on Ubuntu 22.04 runners; the dependency requirements are recorded in each `.deb`.
 
+### Arch Linux / Arch-based distributions
+
+**The `.deb` is for Debian-based distributions, not Arch.** Arch uses `pacman` and a different package format and dependency names. This repository does not currently publish an Arch package or AUR recipe. Use the source-install commands below.
+
+On an up-to-date Arch installation, install the build tools and desktop libraries:
+
+```bash
+sudo pacman -Syu --needed base-devel rust cmake git pkgconf \
+  wayland libxkbcommon libxkbcommon-x11 libx11 libxcb libxcursor libxi libxrandr \
+  libglvnd vulkan-icd-loader
+```
+
+Then build and install this fork's released version as your normal user:
+
+```bash
+cargo install --git https://github.com/alfiethology/thermview.git --tag v0.1.8 --locked thermview
+export PATH="$HOME/.cargo/bin:$PATH"
+thermview --version
+thermview
+```
+
+The first build can take several minutes. The executable is installed in `~/.cargo/bin`, rather than being managed by `pacman`. Keep that directory on your shell's `PATH` for new terminals. This source install does not create an app-menu shortcut. To update, replace the version tag with a newer release and add `--force`; to remove it, run `cargo uninstall thermview`. These commands have not been run in a native Arch environment here.
+
+See the [pacman manual](https://man.archlinux.org/man/pacman.8.en) for Arch's package-management commands. Fedora, openSUSE and other non-Debian distributions should also use their own native packages or build from source with their distribution's dependency names; the `.deb` is not a universal Linux installer.
+
 ### Windows
 
-1. Download `thermview-x86_64-pc-windows-msvc.msi` from this fork's Releases.
-2. Double-click it and follow the installer, approving the administrator prompt when requested.
-3. Open **ThermView** from the Start menu.
+1. Open [this fork's Releases](https://github.com/alfiethology/thermview/releases) and expand **Assets** for the version you want.
+2. Download `thermview-x86_64-pc-windows-msvc.msi` (not **Source code**).
+3. Double-click it and follow the installer, approving the administrator prompt when requested.
+4. Open **ThermView** from the Start menu.
+
+**If the release has no installer attached:** a successful Windows job may already have uploaded one as an Actions artifact even when a different platform prevented release publishing:
+
+1. Sign in to GitHub and open [Actions → release](https://github.com/alfiethology/thermview/actions/workflows/release.yml).
+2. Open the run for your version and confirm its Windows build succeeded.
+3. Under **Artifacts** on the run's summary page, download `thermview-x86_64-pc-windows-msvc`.
+4. Extract that downloaded artifact ZIP, then double-click the `.msi` inside it.
+
+For the initial `v0.1.8` build, the Windows installer was successfully created in [this run](https://github.com/alfiethology/thermview/actions/runs/43262518961); release publishing was skipped after the macOS jobs were cancelled. Actions artifacts expire, so use Release assets when available. GitHub requires a signed-in account with repository read access to [download workflow artifacts](https://docs.github.com/en/actions/managing-workflow-runs/downloading-workflow-artifacts).
 
 Alternatively, from PowerShell in the download folder, open the installer with:
 
@@ -120,6 +156,7 @@ The workflow currently uses ad-hoc signing rather than Apple Developer ID signin
 Install **Rust 1.95 or newer**, **CMake**, and a **C++ compiler** first. The C++ tools build the bundled CharLS JPEG-LS decoder used for CSQ files.
 
 - **Debian/Ubuntu:** install the native build dependencies with `sudo apt install build-essential cmake pkg-config libwayland-dev libxkbcommon-dev`.
+- **Arch Linux:** use the `pacman` dependencies and source-install commands in the Arch section above.
 - **Windows:** install Visual Studio Build Tools with **Desktop development with C++** and a Windows SDK, plus CMake. Use the Rust MSVC toolchain and a terminal where the C++ tools and CMake are available.
 - **macOS:** install Xcode Command Line Tools (`xcode-select --install`) and CMake.
 
