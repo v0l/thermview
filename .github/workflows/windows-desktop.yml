@@ -20,7 +20,7 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: Tests (headless, no OS dialogs)
@@ -48,7 +48,7 @@ jobs:
           if ($process.ExitCode -ne 0) { throw "Version command failed" }
           if ((Get-Content dist/version.txt -Raw) -notmatch 'thermview') { throw "CLI output is missing" }
           Get-Content dist/version.txt
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: thermview-windows-installer
           path: dist/*.msi
