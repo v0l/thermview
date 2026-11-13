@@ -1,6 +1,8 @@
 pub mod app;
 pub mod bytes;
 pub mod colorbar;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod dialog;
 pub mod doc;
 pub mod exif;
 #[cfg(not(target_arch = "wasm32"))]
@@ -15,6 +17,8 @@ pub mod overlay;
 pub mod palette;
 pub mod planck;
 pub mod raster;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod startup;
 pub mod timeline;
 pub mod video;
 

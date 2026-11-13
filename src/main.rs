@@ -1,3 +1,5 @@
+#![cfg_attr(windows, windows_subsystem = "windows")]
+
 use clap::{Parser, Subcommand};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -146,9 +148,52 @@ fn render(
 }
 
 fn main() -> ExitCode {
-    let cli = Cli::parse();
+    #[cfg(windows)]
+    let has_output = unsafe {
+        use windows_sys::Win32::System::Console::{
+            ATTACH_PARENT_PROCESS, AttachConsole, GetStdHandle, STD_OUTPUT_HANDLE,
+        };
+        AttachConsole(ATTACH_PARENT_PROCESS);
+        let output = GetStdHandle(STD_OUTPUT_HANDLE);
+        !output.is_null() && output as isize != -1
+    };
+    thermview::startup::install_panic_log();
+    let cli = match Cli::try_parse() {
+        Ok(cli) => cli,
+        Err(error) => {
+            #[cfg(windows)]
+            if !has_output {
+                rfd::MessageDialog::new()
+                    .set_title("ThermView")
+                    .set_description(error.to_string())
+                    .set_level(if error.exit_code() == 0 {
+                        rfd::MessageLevel::Info
+                    } else {
+                        rfd::MessageLevel::Error
+                    })
+                    .show();
+            } else {
+                let _ = error.print();
+            }
+            #[cfg(not(windows))]
+            let _ = error.print();
+            return ExitCode::from(error.exit_code() as u8);
+        }
+    };
+    let gui = cli.command.is_none();
     let result = match cli.command {
-        None => thermview::app::run(cli.file).map_err(|e| e.to_string()),
+        None => std::panic::catch_unwind(|| thermview::app::run(cli.file))
+            .map_err(|panic| {
+                format!(
+                    "Unexpected startup error: {}",
+                    panic
+                        .downcast_ref::<String>()
+                        .map(String::as_str)
+                        .or_else(|| panic.downcast_ref::<&str>().copied())
+                        .unwrap_or("unknown panic")
+                )
+            })
+            .and_then(|result| result.map_err(|e| e.to_string())),
         Some(Command::Info { file }) => info(&file),
         Some(Command::Render {
             file,
@@ -170,8 +215,23 @@ fn main() -> ExitCode {
     match result {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => {
-            eprintln!("thermview: {e}");
+            thermview::startup::report_error(&e, gui);
             ExitCode::FAILURE
         }
+    }
+}
+
+#[cfg(test)]
+mod launch_tests {
+    use super::*;
+    #[test]
+    fn quoted_shell_file_argument_supports_spaces_and_non_ascii_paths() {
+        let path = r"C:\Users\Vikki\Thermal recordings\test ü.csq";
+        let cli = Cli::try_parse_from(["thermview", "--", path]).unwrap();
+        assert_eq!(cli.file, Some(PathBuf::from(path)));
+        assert!(cli.command.is_none());
+        let cli = Cli::try_parse_from(["thermview"]).unwrap();
+        assert!(cli.file.is_none());
+        assert!(cli.command.is_none());
     }
 }

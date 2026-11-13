@@ -18,6 +18,19 @@ pub fn dropped(file: &dyn egui::DroppedFile) -> Result<Loaded, String> {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
+pub fn initial_directory() -> std::path::PathBuf {
+    let directory = std::env::current_dir().unwrap_or_default();
+    let executable_directory =
+        std::env::current_exe().ok().and_then(|p| p.parent().map(|p| p.to_path_buf()));
+    if directory.parent().is_none() || executable_directory.as_ref() == Some(&directory) {
+        if let Some(user) = std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" }) {
+            return std::path::PathBuf::from(user);
+        }
+    }
+    directory
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 pub fn read(path: &std::path::Path) -> Result<Loaded, String> {
     let bytes = std::fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?;
     let modified = std::fs::metadata(path).and_then(|m| m.modified()).ok();

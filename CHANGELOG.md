@@ -6,6 +6,18 @@ All notable changes to thermview are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.1.11] - 2026-11-13
+
+### Added
+- Native desktop file and folder dialogs, with thermal-file and all-file filters and nonblocking selection.
+- Windows MSI registration for Open With and default-app selection, with correctly quoted file paths.
+- Persistent Windows error dialogs and a startup log; retry OpenGL if WGPU graphics initialization fails before the app opens.
+- A Windows desktop build/test workflow that produces an MSI artifact on relevant master changes.
+
+### Fixed
+- Windows GUI launches avoid a transient console, while command-line launches attach to the calling console.
+- File browsers start in the user directory instead of the application installation directory when launched from installed shortcuts.
+
 ## [0.1.10] - 2026-11-13
 
 ### Changed

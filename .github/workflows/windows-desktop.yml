@@ -1,0 +1,55 @@
+name: Windows desktop
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'build.rs'
+      - 'packaging/windows/**'
+      - '.github/workflows/windows-desktop.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Tests (headless, no OS dialogs)
+        run: cargo test --workspace --locked
+      - name: Build desktop executable
+        run: cargo build --release --locked -p thermview
+      - name: Install WiX
+        run: dotnet tool install --global wix --version 5.0.2
+      - name: Build MSI
+        shell: pwsh
+        run: |
+          $metadata = cargo metadata --no-deps --format-version 1 | ConvertFrom-Json
+          $version = ($metadata.packages | Where-Object name -eq 'thermview').version
+          New-Item -ItemType Directory -Force dist | Out-Null
+          wix build -arch x64 -pdbtype none -d "Version=$version" -d "BinDir=target/release" -o dist/thermview-x86_64-pc-windows-msvc.msi packaging/windows/thermview.wxs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify GUI subsystem and command line
+        shell: pwsh
+        run: |
+          $file = [IO.File]::ReadAllBytes('target/release/thermview.exe')
+          $pe = [BitConverter]::ToInt32($file, 0x3c)
+          $subsystem = [BitConverter]::ToUInt16($file, $pe + 24 + 68)
+          if ($subsystem -ne 2) { throw "Expected Windows GUI subsystem, got $subsystem" }
+          $process = Start-Process -FilePath target/release/thermview.exe -ArgumentList '--version' -NoNewWindow -Wait -PassThru -RedirectStandardOutput dist/version.txt
+          if ($process.ExitCode -ne 0) { throw "Version command failed" }
+          if ((Get-Content dist/version.txt -Raw) -notmatch 'thermview') { throw "CLI output is missing" }
+          Get-Content dist/version.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thermview-windows-installer
+          path: dist/*.msi
+          if-no-files-found: error

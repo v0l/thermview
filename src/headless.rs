@@ -13,7 +13,13 @@ pub struct Harness {
 impl Harness {
     pub fn new(width: f32, height: f32) -> Harness {
         let ctx = egui::Context::default();
-        let app = App::new(&ctx);
+        #[allow(unused_mut)]
+        let mut app = App::new(&ctx);
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            app.file_dialog =
+                crate::dialog::NativePicker::with_backend(|_, _| Box::pin(std::future::pending()));
+        }
         Harness {
             ctx,
             app,

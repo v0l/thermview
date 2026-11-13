@@ -55,7 +55,7 @@ Download the appropriate file from **[this fork's GitHub Releases](https://githu
 From the folder containing the downloaded `.deb`, run:
 
 ```bash
-sudo apt install ./thermview_0.1.10-1_amd64.deb
+sudo apt install ./thermview_0.1.11-1_amd64.deb
 ```
 
 For ARM64, use the corresponding `_arm64.deb` file. This installs the `thermview` command, an app-menu entry, an icon and CSQ/IRG file associations. Open **ThermView** from the app menu or run:
@@ -80,7 +80,7 @@ On an up-to-date Arch installation, install the build tools and desktop librarie
 ```bash
 sudo pacman -Syu --needed base-devel rust cmake git pkgconf \
   wayland libxkbcommon libxkbcommon-x11 libx11 libxcb libxcursor libxi libxrandr \
-  libglvnd vulkan-icd-loader
+  libglvnd vulkan-icd-loader zenity
 ```
 
 Then build and install this fork's released version as your normal user:
@@ -91,6 +91,8 @@ export PATH="$HOME/.cargo/bin:$PATH"
 thermview --version
 thermview
 ```
+
+Linux native file dialogs use the desktop's XDG portal (GNOME/KDE/GTK) with Zenity as a fallback.
 
 The first build can take several minutes. The executable is installed in `~/.cargo/bin`, rather than being managed by `pacman`. Keep that directory on your shell's `PATH` for new terminals. This source install does not create an app-menu shortcut. To update, replace the version tag with a newer release and add `--force`; to remove it, run `cargo uninstall thermview`. These commands have not been run in a native Arch environment here.
 
@@ -117,6 +119,12 @@ Alternatively, from PowerShell in the download folder, open the installer with:
 ```powershell
 msiexec.exe /i ".\thermview-x86_64-pc-windows-msvc.msi"
 ```
+
+**Opening files:** use **Open** (Ctrl+O) for the standard Windows file dialog, or drag a file into ThermView. **Open folder** in Explorer uses Windows' folder picker. The MSI registers `.csq`, `.irg`, `.seq`, `.img`, `.jpg` and `.jpeg` as supported file types. To double-click-open a file, right-click it → **Open with → Choose another app → ThermView → Always** (wording varies by Windows version). This is a per-file-type Windows preference; installing ThermView does not replace your existing photo viewer or other default apps. Portable copies do not install these associations.
+
+**If the app's icon flashes a console and closes:** install the updated MSI. GUI launches no longer create a separate console. If graphics startup fails before the app opens, it retries using OpenGL. Returned errors and caught panics display a persistent Windows dialog and are written to `%LOCALAPPDATA%\ThermView\startup.log`. Include the dialog text and that log when reporting a failure. This does not diagnose errors that prevent Windows from loading the executable at all, such as a missing runtime DLL.
+
+The [Windows desktop workflow](https://github.com/alfiethology/thermview/actions/workflows/windows-desktop.yml) builds and tests Windows changes on `master`. When a run succeeds, its **thermview-windows-installer** artifact contains the latest MSI even before a version is published to Releases. Compilation and automated checks do not replace testing on the affected Windows machine.
 
 The MSI installs to `C:\Program Files\ThermView` and creates a Start-menu shortcut. It currently does **not** add `thermview` to `PATH`. To launch it or check its version from PowerShell, use:
 
@@ -238,9 +246,9 @@ The tests in `tests/samples.rs` and the FLIR screenshot in `tests/ui.rs` read re
 
 The left activity bar switches between **Files** (Explorer) and **Look** (palette, range, mapping and display). Click the active icon again, use **Hide**, or press **Ctrl+B** to collapse the sidebar. **Ctrl+Shift+E** opens Explorer.
 
-On desktop, Explorer shows the current directory, with folders first and expandable subfolders. **Open folder** changes the directory; **Up** goes to its parent; **Refresh** reloads the file list. Click a thermal image or CSQ file to open it. All files are listed; unsupported or unreadable files show an error and keep the current image/video open. Opening a file from outside the current directory switches Explorer to that file's folder. Browser builds retain the activity bar and image controls; filesystem browsing requires the desktop app.
+On desktop, **Open** and **Open folder** use the operating system's file and folder dialogs, including its drives, recent locations, sidebar and path navigation. The file dialog includes thermal-file filters and **All files**. Explorer shows the current directory, with folders first and expandable subfolders. **Open folder** changes the directory; **Up** goes to its parent; **Refresh** reloads the file list. Click a thermal image or CSQ file to open it. All files are listed; unsupported or unreadable files show an error and keep the current image/video open. Opening a file from outside the current directory switches Explorer to that file's folder. Browser builds retain the activity bar and image controls; filesystem browsing requires the desktop app.
 
-1. Open a file with **open** (ctrl+O) or drop one onto the window
+1. Open a file with **open** (ctrl+O) using the native desktop file picker, or drop one onto the window
 2. Pick a palette on the left
 3. Drag the colour bar handles, type the window, or use a preset
 4. Click the image to place measurement points, rename them on the right

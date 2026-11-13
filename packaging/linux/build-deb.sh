@@ -65,8 +65,8 @@ Section: graphics
 Priority: optional
 Homepage: https://github.com/alfiethology/thermview
 Installed-Size: $size
-Depends: $shlibs, libx11-6, libxcursor1, libxi6, libxrandr2, libxkbcommon0, libwayland-client0, libwayland-cursor0, libegl1, libvulkan1
-Recommends: shared-mime-info, hicolor-icon-theme
+Depends: $shlibs, libx11-6, libxcursor1, libxi6, libxrandr2, libxkbcommon0, libwayland-client0, libwayland-cursor0, libegl1, libvulkan1, libdbus-1-3
+Recommends: shared-mime-info, hicolor-icon-theme, xdg-desktop-portal, xdg-desktop-portal-gtk | xdg-desktop-portal-kde | xdg-desktop-portal-gnome, zenity
 Description: Radiometric thermal image and CSQ video viewer
  View thermal images and FLIR CSQ videos with colour palettes, calibration,
  per-frame temperature extrema, measurement points and a scrubbable timeline.

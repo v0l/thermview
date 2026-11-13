@@ -31,9 +31,7 @@ pub struct App {
     #[cfg(not(target_arch = "wasm32"))]
     pub explorer: crate::explorer::Explorer,
     #[cfg(not(target_arch = "wasm32"))]
-    folder_browser: Option<Browser>,
-    #[cfg(not(target_arch = "wasm32"))]
-    browser: Option<Browser>,
+    pub file_dialog: crate::dialog::NativePicker,
     #[cfg(target_arch = "wasm32")]
     picker: host::Picker,
 }
@@ -54,11 +52,9 @@ impl App {
             }),
             last_sidebar: Sidebar::Explorer,
             #[cfg(not(target_arch = "wasm32"))]
-            explorer: crate::explorer::Explorer::new(std::env::current_dir().unwrap_or_default()),
+            explorer: crate::explorer::Explorer::new(host::initial_directory()),
             #[cfg(not(target_arch = "wasm32"))]
-            folder_browser: None,
-            #[cfg(not(target_arch = "wasm32"))]
-            browser: None,
+            file_dialog: crate::dialog::NativePicker::default(),
             #[cfg(target_arch = "wasm32")]
             picker: host::Picker::default(),
         }
@@ -105,8 +101,7 @@ impl App {
         #[cfg(not(target_arch = "wasm32"))]
         {
             let dir = self.explorer.root.clone();
-            self.browser =
-                Some(Browser::new("open a thermal image or video", dir).suffixes(&host::SUFFIXES));
+            self.file_dialog.open(crate::dialog::Kind::File, dir, _ctx);
         }
         #[cfg(target_arch = "wasm32")]
         self.picker.pick(_ctx);
@@ -114,19 +109,15 @@ impl App {
 
     fn poll_open(&mut self, ctx: &egui::Context) {
         #[cfg(not(target_arch = "wasm32"))]
-        if let Some(browser) = &mut self.folder_browser {
-            match browser.show(ctx) {
-                Picked::Browsing => {}
-                Picked::Cancelled => self.folder_browser = None,
-                Picked::Folder(path) => {
-                    self.folder_browser = None;
+        if let Some(choice) = self.file_dialog.poll(ctx) {
+            match choice {
+                crate::dialog::Choice::File(path) => self.load(ctx, host::read(&path)),
+                crate::dialog::Choice::Folder(path) => {
                     self.explorer.set_root(path);
                     self.sidebar = Some(Sidebar::Explorer);
+                    self.last_sidebar = Sidebar::Explorer;
                 }
-                Picked::File(path) => {
-                    self.folder_browser = None;
-                    self.load(ctx, host::read(&path));
-                }
+                crate::dialog::Choice::Cancelled => {}
             }
         }
         if ctx.input(|i| i.modifiers.command && i.key_pressed(egui::Key::B)) {
@@ -140,17 +131,6 @@ impl App {
         if ctx.input(|i| i.modifiers.command && i.modifiers.shift && i.key_pressed(egui::Key::E)) {
             self.sidebar = Some(Sidebar::Explorer);
             self.last_sidebar = Sidebar::Explorer;
-        }
-        #[cfg(not(target_arch = "wasm32"))]
-        if let Some(b) = &mut self.browser {
-            match b.show(ctx) {
-                Picked::Browsing => {}
-                Picked::Cancelled | Picked::Folder(_) => self.browser = None,
-                Picked::File(p) => {
-                    self.browser = None;
-                    self.load(ctx, host::read(&p));
-                }
-            }
         }
         #[cfg(target_arch = "wasm32")]
         if let Some(l) = self.picker.take() {
@@ -357,8 +337,11 @@ impl App {
     fn explorer_panel(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
             if ui.add(Key::new("open folder").outline(VALUE)).clicked() {
-                self.folder_browser =
-                    Some(Browser::new("open folder", self.explorer.root.clone()).folders(true));
+                self.file_dialog.open(
+                    crate::dialog::Kind::Folder,
+                    self.explorer.root.clone(),
+                    ui.ctx(),
+                );
             }
             if ui.add(Key::new("up").outline(VALUE)).on_hover_text("parent directory").clicked() {
                 if let Some(parent) = self.explorer.root.parent().map(|p| p.to_path_buf()) {
@@ -1356,7 +1339,34 @@ impl App {
 
 #[cfg(not(target_arch = "wasm32"))]
 pub fn run(file: Option<std::path::PathBuf>) -> eframe::Result<()> {
+    use std::sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    };
+    let started = Arc::new(AtomicBool::new(false));
+    match run_renderer(file.clone(), eframe::Renderer::Wgpu, started.clone()) {
+        Ok(()) => Ok(()),
+        Err(error) if !started.load(Ordering::Relaxed) => {
+            crate::startup::log(&format!("WGPU startup failed: {error}. Retrying with OpenGL."));
+            run_renderer(file, eframe::Renderer::Glow, started).map_err(|fallback| {
+                eframe::Error::AppCreation(Box::new(crate::Error::new(format!(
+                    "Graphics startup failed. WGPU: {error}. OpenGL fallback: {fallback}"
+                ))))
+            })
+        }
+        Err(error) => Err(error),
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn run_renderer(
+    file: Option<std::path::PathBuf>,
+    renderer: eframe::Renderer,
+    started: std::sync::Arc<std::sync::atomic::AtomicBool>,
+) -> eframe::Result<()> {
     let opts = eframe::NativeOptions {
+        renderer,
+        run_and_return: true,
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([1500.0, 950.0])
             .with_title("thermview"),
@@ -1366,7 +1376,9 @@ pub fn run(file: Option<std::path::PathBuf>) -> eframe::Result<()> {
         "thermview",
         opts,
         Box::new(move |cc| {
+            started.store(true, std::sync::atomic::Ordering::Relaxed);
             let mut app = App::new(&cc.egui_ctx);
+            app.file_dialog.set_parent(cc);
             if let Some(f) = &file {
                 app.load(&cc.egui_ctx, host::read(f));
             }

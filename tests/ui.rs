@@ -118,7 +118,7 @@ fn the_empty_window_offers_to_open_a_file() {
 }
 
 #[test]
-fn open_shows_the_file_browser_without_waiting_for_more_input() {
+fn open_requests_the_native_file_dialog_without_waiting_for_more_input() {
     let mut h = Harness::new(1200.0, 800.0);
     h.settle();
     let at = h.find("OPEN").expect("open button").center();
@@ -136,11 +136,9 @@ fn open_shows_the_file_browser_without_waiting_for_more_input() {
         pressed: false,
         modifiers: Default::default(),
     }]);
-    for _ in 0..3 {
-        assert!(h.ctx.has_requested_repaint(), "nothing asks for the frame that draws the browser");
-        h.frame(Vec::new());
-    }
-    assert!(h.texts().iter().any(|(t, _)| t.starts_with("FOLDER")));
+    #[cfg(not(target_arch = "wasm32"))]
+    assert!(h.app.file_dialog.busy(), "native file picker was not requested");
+    assert!(h.app.doc.is_none());
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -189,5 +187,39 @@ fn explorer_opens_nested_thermal_files_and_reports_unsupported_files() {
     assert!(h.find("new-file.txt").is_some());
     h.click(h.find("nested").unwrap().center());
     assert!(h.find("scene.jpg").is_none(), "folder collapses");
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[test]
+fn native_file_and_folder_choices_load_without_a_custom_modal() {
+    let dir = std::path::Path::new(env!("CARGO_TARGET_TMPDIR")).join("native-dialog-ui");
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("thermal ü with spaces.jpg");
+    std::fs::write(&path, synthetic().bytes).unwrap();
+    let mut h = Harness::new(1400.0, 900.0);
+    h.settle();
+    h.app.explorer.set_root(dir.clone());
+    h.app.file_dialog = thermview::dialog::NativePicker::with_backend(|_, dir| {
+        Box::pin(std::future::ready(Some(dir.join("thermal ü with spaces.jpg"))))
+    });
+    h.click(h.find("OPEN").unwrap().center());
+    assert_eq!(h.app.doc.as_ref().unwrap().name, "thermal ü with spaces.jpg");
+    let image = h.app.doc.as_ref().unwrap().image.celsius.clone();
+    h.app.file_dialog =
+        thermview::dialog::NativePicker::with_backend(|_, _| Box::pin(std::future::ready(None)));
+    h.click(h.find("OPEN").unwrap().center());
+    assert_eq!(
+        h.app.doc.as_ref().unwrap().image.celsius,
+        image,
+        "cancelling keeps the current image"
+    );
+    h.app.file_dialog = thermview::dialog::NativePicker::with_backend(|_, dir| {
+        Box::pin(std::future::ready(Some(dir.join("subfolder"))))
+    });
+    std::fs::create_dir_all(dir.join("subfolder")).unwrap();
+    h.click(h.find("OPEN FOLDER").unwrap().center());
+    assert_eq!(h.app.explorer.root, dir.join("subfolder").canonicalize().unwrap());
+    assert_eq!(h.app.doc.as_ref().unwrap().image.celsius, image);
     let _ = std::fs::remove_dir_all(dir);
 }

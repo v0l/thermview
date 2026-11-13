@@ -13,12 +13,43 @@
 
     <Icon Id="AppIcon" SourceFile="packaging\windows\icon.ico" />
     <Property Id="ARPPRODUCTICON" Value="AppIcon" />
-    <Property Id="ARPURLINFOABOUT" Value="https://github.com/v0l/thermview" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/alfiethology/thermview" />
 
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="INSTALLFOLDER" Name="ThermView">
         <Component Id="AppExe" Guid="239e492f-89b0-4d82-83d0-9a60d2b0f871">
           <File Id="ThermviewExe" Source="$(var.BinDir)\thermview.exe" KeyPath="yes" />
+        </Component>
+        <!-- Register Open With/default-app candidates; Windows keeps the user's chosen defaults. -->
+        <Component Id="FileAssociations" Guid="9c0b4715-4371-43b7-8fce-3eafb2354a39">
+          <RegistryValue Root="HKLM" Key="Software\Alfiethology\ThermView" Name="associations" Type="integer" Value="1" KeyPath="yes" />
+          <RegistryValue Root="HKLM" Key="Software\Classes\ThermView.Thermal" Type="string" Value="ThermView thermal image or video" />
+          <RegistryValue Root="HKLM" Key="Software\Classes\ThermView.Thermal\DefaultIcon" Type="string" Value="&quot;[#ThermviewExe]&quot;,0" />
+          <RegistryValue Root="HKLM" Key="Software\Classes\ThermView.Thermal\shell\open\command" Type="string" Value="&quot;[#ThermviewExe]&quot; -- &quot;%1&quot;" />
+          <RegistryValue Root="HKLM" Key="Software\Classes\Applications\thermview.exe" Name="FriendlyAppName" Type="string" Value="ThermView" />
+          <RegistryValue Root="HKLM" Key="Software\Classes\Applications\thermview.exe\shell\open\command" Type="string" Value="&quot;[#ThermviewExe]&quot; -- &quot;%1&quot;" />
+          <RegistryValue Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\App Paths\thermview.exe" Type="string" Value="[#ThermviewExe]" />
+          <RegistryValue Root="HKLM" Key="Software\RegisteredApplications" Name="ThermView" Type="string" Value="Software\Alfiethology\ThermView\Capabilities" />
+          <RegistryValue Root="HKLM" Key="Software\Alfiethology\ThermView\Capabilities" Name="ApplicationName" Type="string" Value="ThermView" />
+          <RegistryValue Root="HKLM" Key="Software\Alfiethology\ThermView\Capabilities" Name="ApplicationDescription" Type="string" Value="View radiometric thermal images and CSQ videos" />
+          <RegistryValue Root="HKLM" Key="Software\Classes\.csq\OpenWithProgids" Name="ThermView.Thermal" Type="string" Value="" />
+          <RegistryValue Root="HKLM" Key="Software\Classes\Applications\thermview.exe\SupportedTypes" Name=".csq" Type="string" Value="" />
+          <RegistryValue Root="HKLM" Key="Software\Alfiethology\ThermView\Capabilities\FileAssociations" Name=".csq" Type="string" Value="ThermView.Thermal" />
+          <RegistryValue Root="HKLM" Key="Software\Classes\.irg\OpenWithProgids" Name="ThermView.Thermal" Type="string" Value="" />
+          <RegistryValue Root="HKLM" Key="Software\Classes\Applications\thermview.exe\SupportedTypes" Name=".irg" Type="string" Value="" />
+          <RegistryValue Root="HKLM" Key="Software\Alfiethology\ThermView\Capabilities\FileAssociations" Name=".irg" Type="string" Value="ThermView.Thermal" />
+          <RegistryValue Root="HKLM" Key="Software\Classes\.seq\OpenWithProgids" Name="ThermView.Thermal" Type="string" Value="" />
+          <RegistryValue Root="HKLM" Key="Software\Classes\Applications\thermview.exe\SupportedTypes" Name=".seq" Type="string" Value="" />
+          <RegistryValue Root="HKLM" Key="Software\Alfiethology\ThermView\Capabilities\FileAssociations" Name=".seq" Type="string" Value="ThermView.Thermal" />
+          <RegistryValue Root="HKLM" Key="Software\Classes\.img\OpenWithProgids" Name="ThermView.Thermal" Type="string" Value="" />
+          <RegistryValue Root="HKLM" Key="Software\Classes\Applications\thermview.exe\SupportedTypes" Name=".img" Type="string" Value="" />
+          <RegistryValue Root="HKLM" Key="Software\Alfiethology\ThermView\Capabilities\FileAssociations" Name=".img" Type="string" Value="ThermView.Thermal" />
+          <RegistryValue Root="HKLM" Key="Software\Classes\.jpg\OpenWithProgids" Name="ThermView.Thermal" Type="string" Value="" />
+          <RegistryValue Root="HKLM" Key="Software\Classes\Applications\thermview.exe\SupportedTypes" Name=".jpg" Type="string" Value="" />
+          <RegistryValue Root="HKLM" Key="Software\Alfiethology\ThermView\Capabilities\FileAssociations" Name=".jpg" Type="string" Value="ThermView.Thermal" />
+          <RegistryValue Root="HKLM" Key="Software\Classes\.jpeg\OpenWithProgids" Name="ThermView.Thermal" Type="string" Value="" />
+          <RegistryValue Root="HKLM" Key="Software\Classes\Applications\thermview.exe\SupportedTypes" Name=".jpeg" Type="string" Value="" />
+          <RegistryValue Root="HKLM" Key="Software\Alfiethology\ThermView\Capabilities\FileAssociations" Name=".jpeg" Type="string" Value="ThermView.Thermal" />
         </Component>
         <Component Id="AppDocs" Guid="67c622b4-be6f-4b81-993e-de1af6fd3571">
           <File Id="ReadmeMd" Source="README.md" KeyPath="yes" />
@@ -36,6 +67,7 @@
     <Feature Id="Main" Title="ThermView" Level="1">
       <ComponentRef Id="AppExe" />
       <ComponentRef Id="AppDocs" />
+      <ComponentRef Id="FileAssociations" />
       <ComponentRef Id="AppShortcut" />
     </Feature>
   </Package>
