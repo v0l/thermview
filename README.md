@@ -55,7 +55,7 @@ Download the appropriate file from **[this fork's GitHub Releases](https://githu
 From the folder containing the downloaded `.deb`, run:
 
 ```bash
-sudo apt install ./thermview_0.1.9-1_amd64.deb
+sudo apt install ./thermview_0.1.10-1_amd64.deb
 ```
 
 For ARM64, use the corresponding `_arm64.deb` file. This installs the `thermview` command, an app-menu entry, an icon and CSQ/IRG file associations. Open **ThermView** from the app menu or run:
@@ -213,7 +213,7 @@ Select **Measure** in the left activity bar. Scrub to the first frame and press 
 
 Results show the hottest and coldest temperatures with their frame numbers and zero-based pixel locations, plus **Average max** (the mean of each frame's hottest reading), **Average min** (the mean of each frame's coldest reading), and **Overall mean** (all valid pixel temperatures across all selected frames, weighted equally per pixel). **Go to hottest/coldest** opens the corresponding frame. **Next hottest**, beside **Go to hottest**, steps through distinct frames ranked by each frame's maximum temperature, highest first. Equal maxima use chronological frame order. The hottest card shows the selected candidate's temperature, pixel location, frame and rank. The button stops at the last candidate; **Go to hottest** returns to rank 1 and restarts browsing. Range-wide extrema and averages remain unchanged. Changing the range, recalibrating, or running a new analysis resets candidate browsing. A single-frame range is valid. The time span is the first-to-last frame interval using the current playback frame rate.
 
-Analysis uses each frame's recorded calibration, or your current edited calibration when recalibrated. Changing calibration or either mark clears old results; changing the palette or display unit does not. Invalid temperatures are excluded. A frame with no valid readings or a decoding error stops the analysis and reports an error, rather than presenting a partial summary. **Reset** clears marks and results. I/O shortcuts are ignored while editing text or numeric fields.
+Analysis uses each frame's recorded calibration, or your current edited calibration when recalibrated. Changing calibration or either mark clears old results; changing the palette or display unit does not. Invalid temperatures are excluded. Unreadable frames and frames with no valid readings are skipped, and analysis continues through the selected range. The result shows successfully analysed frames versus selected frames. When frames were skipped, a partial-coverage notice makes clear that extrema, averages and ranked candidates describe the readable frames only; the temperatures of skipped frames remain unknown. The **Failures** box at the bottom of Measure lists the skipped frame numbers and errors (hover a row for the full message). If every selected frame fails, no temperature summary is produced. Failure details are cleared with a new analysis, changed marks, recalibration or Reset. **Reset** clears marks and results. I/O shortcuts are ignored while editing text or numeric fields.
 
 ### Web
 

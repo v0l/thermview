@@ -375,12 +375,54 @@ fn inclusive_measurements_use_all_frames_without_moving_the_view() {
     assert_eq!(result.average_max, b.stats.max.celsius as f64);
 }
 
-#[test]
-fn a_bad_frame_aborts_measurement_instead_of_reporting_partial_results() {
-    let mut bytes = sequence();
+fn corrupt_frame(mut bytes: Vec<u8>) -> Vec<u8> {
     let eoi = bytes.windows(2).rposition(|p| p == [0xff, 0xd9]).unwrap();
     bytes[eoi + 1] = 0;
+    bytes
+}
+
+#[test]
+fn unreadable_frames_are_skipped_and_averages_use_only_successful_frames() {
+    let bad = corrupt_frame(frame(&[50000; 48], true));
+    let good_a = frame(&[14000; 48], true);
+    let good_b = frame(&[18000; 48], true);
+    let bytes = [bad.clone(), good_a, bad.clone(), good_b, bad].concat();
     let video = Video::open(bytes).unwrap();
+    let a = video.frame(1).unwrap();
+    let b = video.frame(3).unwrap();
+    let mut measurement = thermview::measure::Measurement::default();
+    measurement.mark_start(0);
+    measurement.mark_end(4);
+    measurement.begin(video.len(), None);
+    measurement.advance(&video);
+    assert!(measurement.running(), "attempts remain bounded per UI update");
+    let (done, total) = measurement.progress().unwrap();
+    assert!((1..=4).contains(&done));
+    assert_eq!(total, 5);
+    while measurement.running() {
+        measurement.advance(&video);
+    }
+    assert!(measurement.error.is_none());
+    let result = measurement.result.as_ref().unwrap();
+    assert_eq!((result.frames, result.selected_frames), (2, 5));
+    assert_eq!(result.hottest.frame, 3);
+    assert_eq!(result.coldest.frame, 1);
+    assert_eq!(result.hottest_frames.len(), 2, "failed frames must not become candidates");
+    assert_eq!(measurement.failures.iter().map(|f| f.frame).collect::<Vec<_>>(), vec![0, 2, 4]);
+    assert!(measurement.failures[1].error.contains("CSQ frame 3"));
+    assert_eq!(result.average_max, (a.stats.max.celsius as f64 + b.stats.max.celsius as f64) / 2.0);
+    assert_eq!(result.average_min, (a.stats.min.celsius as f64 + b.stats.min.celsius as f64) / 2.0);
+    let expected = a.celsius.iter().chain(&b.celsius).map(|&c| c as f64).sum::<f64>() / 96.0;
+    assert!((result.mean - expected).abs() < 1e-9);
+    measurement.mark_end(3);
+    assert!(measurement.failures.is_empty());
+    assert!(measurement.result.is_none());
+}
+
+#[test]
+fn all_failed_frames_finish_without_fabricating_temperatures() {
+    let bad = corrupt_frame(frame(&[14000; 48], true));
+    let video = Video::open([bad.clone(), bad].concat()).unwrap();
     let mut measurement = thermview::measure::Measurement::default();
     measurement.mark_start(0);
     measurement.mark_end(1);
@@ -389,7 +431,11 @@ fn a_bad_frame_aborts_measurement_instead_of_reporting_partial_results() {
         measurement.advance(&video);
     }
     assert!(measurement.result.is_none());
-    assert!(measurement.error.unwrap().contains("CSQ frame 2"));
+    assert_eq!(measurement.failures.len(), 2);
+    assert!(measurement.error.as_ref().unwrap().contains("No readable frames"));
+    measurement.clear();
+    assert!(measurement.failures.is_empty());
+    assert!(measurement.error.is_none());
 }
 
 #[test]
@@ -604,4 +650,90 @@ fn next_hottest_visits_each_ranked_frame_and_go_to_hottest_restarts() {
     h.click(h.find("MARK END").unwrap().center());
     assert!(h.app.doc.as_ref().unwrap().measurement.result.is_none());
     assert_eq!(h.app.doc.as_ref().unwrap().measurement.hottest_rank, 0);
+}
+
+#[test]
+fn failures_box_reports_skipped_frames_and_partial_coverage() {
+    let good = frame(&[14000; 48], true);
+    let bad = corrupt_frame(frame(&[50000; 48], true));
+    let bytes = [good.clone(), bad.clone(), good, bad].concat();
+    let mut h = Harness::new(1500.0, 1550.0);
+    h.settle();
+    h.app.load(
+        &h.ctx.clone(),
+        Ok(Loaded { name: "failures.csq".into(), bytes, modified: None, path: None }),
+    );
+    h.settle();
+    h.click(h.find("MEASURE").unwrap().center());
+    let measurement = &mut h.app.doc.as_mut().unwrap().measurement;
+    measurement.mark_start(0);
+    measurement.mark_end(3);
+    h.settle();
+    h.click(h.find("ANALYSE RANGE").unwrap().center());
+    h.settle();
+    assert!(h.find("2 / 4 frames").is_some());
+    assert!(h.find("FAILURES").is_some());
+    assert!(h.texts().iter().any(|(t, _)| t.contains("Partial coverage")));
+    assert!(h.texts().iter().any(|(t, _)| t.starts_with("Frame 2:")));
+    assert!(h.texts().iter().any(|(t, _)| t.starts_with("Frame 4:")));
+    std::fs::write(
+        std::path::Path::new(env!("CARGO_TARGET_TMPDIR")).join("csq-failures.png"),
+        h.png(),
+    )
+    .unwrap();
+    h.click(h.find("GO TO HOTTEST").unwrap().center());
+    assert_eq!(h.app.doc.as_ref().unwrap().video.as_ref().unwrap().current, 0);
+    h.click(h.find("NEXT HOTTEST").unwrap().center());
+    assert_eq!(h.app.doc.as_ref().unwrap().video.as_ref().unwrap().current, 2);
+    h.click(h.find("RESET").unwrap().center());
+    assert!(h.app.doc.as_ref().unwrap().measurement.failures.is_empty());
+}
+
+#[test]
+#[ignore = "set THERMVIEW_TEST_CSQ; checks analysis around frame 5527"]
+fn real_recording_measurement_continues_past_frame_5527() {
+    let path = std::env::var("THERMVIEW_TEST_CSQ").unwrap();
+    let video = Video::open(std::fs::read(path).unwrap()).unwrap();
+    let mut measurement = thermview::measure::Measurement::default();
+    measurement.mark_start(5524);
+    measurement.mark_end(5528);
+    measurement.begin(video.len(), None);
+    while measurement.running() {
+        measurement.advance(&video);
+    }
+    assert!(measurement.error.is_none(), "{:?}", measurement.error);
+    let result = measurement.result.as_ref().unwrap();
+    assert_eq!(result.selected_frames, 5);
+    assert_eq!(result.frames + measurement.failures.len(), 5);
+    assert!(
+        result.hottest_frames.iter().any(|p| p.frame == 5528),
+        "analysis must reach the frame after the reported error"
+    );
+    println!(
+        "Frames 5525–5529: {} analysed, {} skipped",
+        result.frames,
+        measurement.failures.len()
+    );
+    for failure in &measurement.failures {
+        println!("Skipped frame {}: {}", failure.frame + 1, failure.error);
+    }
+}
+
+#[test]
+fn frames_without_valid_temperatures_are_reported_and_skipped() {
+    let good = frame(&[14000; 48], true);
+    let invalid = frame(&[0; 48], true);
+    let video = Video::open([good.clone(), invalid, good].concat()).unwrap();
+    let mut measurement = thermview::measure::Measurement::default();
+    measurement.mark_start(0);
+    measurement.mark_end(2);
+    measurement.begin(video.len(), None);
+    while measurement.running() {
+        measurement.advance(&video);
+    }
+    assert!(measurement.error.is_none());
+    assert_eq!(measurement.result.as_ref().unwrap().frames, 2);
+    assert_eq!(measurement.failures.len(), 1);
+    assert_eq!(measurement.failures[0].frame, 1);
+    assert!(measurement.failures[0].error.contains("no valid temperature"));
 }

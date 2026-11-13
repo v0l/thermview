@@ -6,6 +6,15 @@ All notable changes to thermview are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.1.10] - 2026-11-13
+
+### Changed
+- Range measurement skips unreadable frames and frames without valid temperatures, then continues through the entire selection.
+- Statistics and ranked candidates use only successfully analysed frames, with explicit analysed/selected counts and a partial-coverage notice.
+
+### Added
+- A Failures box at the bottom of Measure lists skipped frame numbers and decoding errors. All-failed selections report an error without fabricated statistics.
+
 ## [0.1.9] - 2026-11-12
 
 ### Added

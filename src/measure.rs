@@ -11,10 +11,17 @@ pub struct FrameSpot {
 }
 
 #[derive(Clone, Debug)]
+pub struct FrameFailure {
+    pub frame: usize,
+    pub error: String,
+}
+
+#[derive(Clone, Debug)]
 pub struct Summary {
     pub start: usize,
     pub end: usize,
     pub frames: usize,
+    pub selected_frames: usize,
     pub hottest: FrameSpot,
     pub hottest_frames: Vec<FrameSpot>,
     pub coldest: FrameSpot,
@@ -30,6 +37,7 @@ pub struct Measurement {
     pub end: Option<usize>,
     pub result: Option<Summary>,
     pub error: Option<String>,
+    pub failures: Vec<FrameFailure>,
     pub hottest_rank: usize,
     job: Option<Job>,
 }
@@ -58,6 +66,7 @@ impl Measurement {
         self.end = Some(frame);
     }
     pub fn invalidate(&mut self) {
+        self.failures.clear();
         self.hottest_rank = 0;
         self.result = None;
         self.error = None;
@@ -110,23 +119,27 @@ impl Measurement {
         #[cfg(not(target_arch = "wasm32"))]
         let started = std::time::Instant::now();
         for _ in 0..4 {
-            let frame = match video.frame(job.next) {
-                Ok(frame) => frame,
-                Err(e) => {
-                    self.error = Some(e.to_string());
-                    return;
-                }
-            };
-            let frame = match job.params {
-                Some(params) => frame.recompute(params),
-                None => frame,
-            };
-            if let Err(e) = job.push(&frame) {
-                self.error = Some(e.to_string());
-                return;
+            let index = job.next;
+            let outcome = video.frame(index).and_then(|frame| {
+                let frame = match job.params {
+                    Some(params) => frame.recompute(params),
+                    None => frame,
+                };
+                job.push(&frame)
+            });
+            if let Err(error) = outcome {
+                self.failures.push(FrameFailure { frame: index, error: error.to_string() });
+                job.next = index + 1;
             }
             if job.next > job.end {
-                self.result = Some(job.finish());
+                if job.hottest_frames.is_empty() {
+                    self.error = Some(format!(
+                        "No readable frames: 0 of {} selected frames could be analysed. See Failures below.",
+                        job.end - job.start + 1
+                    ));
+                } else {
+                    self.result = Some(job.finish());
+                }
                 return;
             }
             #[cfg(not(target_arch = "wasm32"))]
@@ -149,7 +162,7 @@ impl Job {
         }
         if count == 0 {
             return Err(Error::new(format!(
-                "Frame {} contains no valid temperature readings; analysis stopped.",
+                "Frame {} contains no valid temperature readings.",
                 self.next + 1
             )));
         }
@@ -171,11 +184,13 @@ impl Job {
     fn finish(mut self) -> Summary {
         self.hottest_frames
             .sort_by(|a, b| b.spot.celsius.total_cmp(&a.spot.celsius).then(a.frame.cmp(&b.frame)));
-        let frames = self.end - self.start + 1;
+        let selected_frames = self.end - self.start + 1;
+        let frames = self.hottest_frames.len();
         Summary {
             start: self.start,
             end: self.end,
             frames,
+            selected_frames,
             hottest: self.hottest.expect("at least one valid frame"),
             hottest_frames: self.hottest_frames,
             coldest: self.coldest.expect("at least one valid frame"),

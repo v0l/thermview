@@ -542,11 +542,30 @@ impl App {
                     .text(format!("{done} / {total} frames")),
             );
             hint(ui, "analysing every frame; the current view stays in place");
+            if !measurement.failures.is_empty() {
+                note(ui, &format!("{} frames skipped so far", measurement.failures.len()), FAULT);
+            }
         }
         if let Some(error) = &measurement.error {
             note(ui, error, FAULT);
         }
         if let Some(result) = &measurement.result {
+            reading(
+                ui,
+                "analysed",
+                format!("{} / {} frames", result.frames, result.selected_frames),
+            );
+            if !measurement.failures.is_empty() {
+                note(
+                    ui,
+                    &format!(
+                        "Partial coverage: {} frames skipped. Results describe readable frames only.",
+                        measurement.failures.len()
+                    ),
+                    FAULT,
+                );
+            }
+            ui.add_space(8.0);
             let unit = doc.unit;
             let mut rank = measurement.hottest_rank.min(result.hottest_frames.len() - 1);
             section(ui, "hottest", "frames ranked by maximum temperature", |ui| {
@@ -584,7 +603,7 @@ impl App {
             });
             measurement.hottest_rank = rank;
             ui.add_space(8.0);
-            section(ui, "coldest", "lowest temperature in the selected frames", |ui| {
+            section(ui, "coldest", "lowest temperature in readable frames", |ui| {
                 let p = result.coldest;
                 hero(
                     ui,
@@ -604,7 +623,7 @@ impl App {
                 reading(ui, "average min", unit.reading(result.average_min as f32));
                 hint(ui, "mean of the coldest reading in each frame");
                 reading(ui, "overall mean", unit.reading(result.mean as f32));
-                hint(ui, "mean of all valid pixel temperatures across the range");
+                hint(ui, "mean of valid pixels in analysed frames");
             });
             ui.add_space(8.0);
             hint(
@@ -617,6 +636,41 @@ impl App {
             );
         } else if !measurement.running() && measurement.error.is_none() {
             hint(ui, "mark a start with I and an end with O, then analyse the range");
+        }
+        if !measurement.running()
+            && (measurement.result.is_some() || !measurement.failures.is_empty())
+        {
+            ui.add_space(8.0);
+            section(ui, "failures", &format!("{} skipped", measurement.failures.len()), |ui| {
+                if measurement.failures.is_empty() {
+                    hint(ui, "no failed frames");
+                } else {
+                    hint(ui, "hover a frame for its full error");
+                    egui::ScrollArea::vertical()
+                        .id_salt("measurement failures")
+                        .max_height(180.0)
+                        .show_rows(ui, 22.0, measurement.failures.len(), |ui, rows| {
+                            for index in rows {
+                                let failure = &measurement.failures[index];
+                                let prefix = format!("CSQ frame {}: ", failure.frame + 1);
+                                let message =
+                                    failure.error.strip_prefix(&prefix).unwrap_or(&failure.error);
+                                ui.add(
+                                    egui::Label::new(
+                                        egui::RichText::new(format!(
+                                            "Frame {}: {message}",
+                                            failure.frame + 1
+                                        ))
+                                        .font(figure(11.0))
+                                        .color(FAULT),
+                                    )
+                                    .truncate(),
+                                )
+                                .on_hover_text(&failure.error);
+                            }
+                        });
+                }
+            });
         }
         if let Some(frame) = seek {
             video.playing = false;
