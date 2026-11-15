@@ -1,0 +1,2098 @@
+{
+  "thermview_commit": "b99568af495ef489eb11ca2b735bf96f82e9961d",
+  "tolerance_c": 0.001,
+  "exiftool_version": "13.63",
+  "ffmpeg_version": "ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers",
+  "r_version": "Rscript (R) version 4.6.2 (2026-10-29)",
+  "reference_hashes": {
+    "raw2temp.R": "2c1744363d8f36318d06955f1004dd98329e5277a9a6fd23d725e1b4850b8916",
+    "csq.py": "b95a12def836c05714b46789f3865dfb78bf6ec45b938f1cddc25534367d6954"
+  },
+  "cases": [
+    {
+      "case": "CSQ frame 1",
+      "source_sha256": "d325174c91173368074f86d1fd1857cb0ca35b8077ba524984bb892dcb367166",
+      "source_metadata": {
+        "Emissivity": 0.959999978542328,
+        "ObjectDistance": 0,
+        "ReflectedApparentTemperature": 16.9999938964844,
+        "AtmosphericTemperature": 16.9999938964844,
+        "IRWindowTemperature": 19.9999938964844,
+        "IRWindowTransmission": 1,
+        "RelativeHumidity": 0.569999992847443,
+        "PlanckR1": 16002.7138671875,
+        "PlanckB": 1417.80004882812,
+        "PlanckF": 1,
+        "PlanckO": -5030,
+        "PlanckR2": 0.0116012888029218,
+        "AtmosphericTransAlpha1": 1.23900001369748e-08,
+        "AtmosphericTransAlpha2": 1.10949995857368e-08,
+        "AtmosphericTransBeta1": "0.00317999999970198",
+        "AtmosphericTransBeta2": "0.00318020000122488",
+        "AtmosphericTransX": 0.73199999332428
+      },
+      "reference_decoded": true,
+      "thermimage": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.1490789387348,
+        "max_c": 29.9478399992108,
+        "mean_c": 15.311393015650564
+      },
+      "csq_converter": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.149078938734817,
+        "max_c": 29.947839999210828,
+        "mean_c": 15.311393015650564
+      },
+      "reference_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 4.973799150320701e-14,
+        "mean_abs_c": 2.4906928371611533e-14
+      },
+      "thermview": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.098118782043457,
+        "max_c": 30.05065155029297,
+        "mean_c": 15.296479321407775
+      },
+      "thermview_metadata": {
+        "format": "FLIR CSQ",
+        "width": 320,
+        "height": 240,
+        "emissivity": 0.9599999785423279,
+        "distance": 1,
+        "reflected": 16.999993896484398,
+        "air": 16.999993896484398,
+        "humidity": 56.99999928474426,
+        "planck": {
+          "r1": 16002.7138671875,
+          "b": 1417.800048828125,
+          "f": 1,
+          "o": -5030,
+          "r2": 0.011601288802921772
+        }
+      },
+      "raw_count_mismatches": 0,
+      "metadata_differences": {
+        "distance": {
+          "file": 0.0,
+          "thermview": 1
+        }
+      },
+      "planck_constants_match": true,
+      "temperature_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 0.10281155108216922,
+        "mean_abs_c": 0.029816395988663973
+      },
+      "thermview_assumptions_diagnostic": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 9.534692821944191e-07,
+        "mean_abs_c": 3.085127390171453e-07
+      },
+      "status": "DIFFERENCE"
+    },
+    {
+      "case": "CSQ frame 2",
+      "source_sha256": "1bcd636063a4595fc5b2ed9597491a26e9743899cf206bc071e65f82d2b48133",
+      "source_metadata": {
+        "Emissivity": 0.959999978542328,
+        "ObjectDistance": 0,
+        "ReflectedApparentTemperature": 16.9999938964844,
+        "AtmosphericTemperature": 16.9999938964844,
+        "IRWindowTemperature": 19.9999938964844,
+        "IRWindowTransmission": 1,
+        "RelativeHumidity": 0.569999992847443,
+        "PlanckR1": 16002.7138671875,
+        "PlanckB": 1417.80004882812,
+        "PlanckF": 1,
+        "PlanckO": -5030,
+        "PlanckR2": 0.0116012888029218,
+        "AtmosphericTransAlpha1": 1.23900001369748e-08,
+        "AtmosphericTransAlpha2": 1.10949995857368e-08,
+        "AtmosphericTransBeta1": "0.00317999999970198",
+        "AtmosphericTransBeta2": "0.00318020000122488",
+        "AtmosphericTransX": 0.73199999332428
+      },
+      "reference_decoded": true,
+      "thermimage": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.1988330738352,
+        "max_c": 29.9530037358414,
+        "mean_c": 15.322919470005317
+      },
+      "csq_converter": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.198833073835203,
+        "max_c": 29.953003735841378,
+        "mean_c": 15.322919470005315
+      },
+      "reference_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 4.973799150320701e-14,
+        "mean_abs_c": 2.4851394090733927e-14
+      },
+      "thermview": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.148321151733398,
+        "max_c": 30.05585479736328,
+        "mean_c": 15.308103595351179
+      },
+      "thermview_metadata": {
+        "format": "FLIR CSQ",
+        "width": 320,
+        "height": 240,
+        "emissivity": 0.9599999785423279,
+        "distance": 1,
+        "reflected": 16.999993896484398,
+        "air": 16.999993896484398,
+        "humidity": 56.99999928474426,
+        "planck": {
+          "r1": 16002.7138671875,
+          "b": 1417.800048828125,
+          "f": 1,
+          "o": -5030,
+          "r2": 0.011601288802921772
+        }
+      },
+      "raw_count_mismatches": 0,
+      "metadata_differences": {
+        "distance": {
+          "file": 0.0,
+          "thermview": 1
+        }
+      },
+      "planck_constants_match": true,
+      "temperature_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 0.10285106152188206,
+        "mean_abs_c": 0.02980228808906139
+      },
+      "thermview_assumptions_diagnostic": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 9.534692821944191e-07,
+        "mean_abs_c": 3.0814423404912363e-07
+      },
+      "status": "DIFFERENCE"
+    },
+    {
+      "case": "CSQ frame 3",
+      "source_sha256": "f21a995bfcb7dc3a628cbb38baef15f7131420ec1f5abbe7785c807f558184f6",
+      "source_metadata": {
+        "Emissivity": 0.959999978542328,
+        "ObjectDistance": 0,
+        "ReflectedApparentTemperature": 16.9999938964844,
+        "AtmosphericTemperature": 16.9999938964844,
+        "IRWindowTemperature": 19.9999938964844,
+        "IRWindowTransmission": 1,
+        "RelativeHumidity": 0.569999992847443,
+        "PlanckR1": 16002.7138671875,
+        "PlanckB": 1417.80004882812,
+        "PlanckF": 1,
+        "PlanckO": -5030,
+        "PlanckR2": 0.0116012888029218,
+        "AtmosphericTransAlpha1": 1.23900001369748e-08,
+        "AtmosphericTransAlpha2": 1.10949995857368e-08,
+        "AtmosphericTransBeta1": "0.00317999999970198",
+        "AtmosphericTransBeta2": "0.00318020000122488",
+        "AtmosphericTransX": 0.73199999332428
+      },
+      "reference_decoded": true,
+      "thermimage": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.142857800968,
+        "max_c": 29.9839810481931,
+        "mean_c": 15.320725137196902
+      },
+      "csq_converter": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.142857800968045,
+        "max_c": 29.98398104819313,
+        "mean_c": 15.320725137196902
+      },
+      "reference_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 4.973799150320701e-14,
+        "mean_abs_c": 2.4794703327539008e-14
+      },
+      "thermview": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.091841697692871,
+        "max_c": 30.08706283569336,
+        "mean_c": 15.305891682046155
+      },
+      "thermview_metadata": {
+        "format": "FLIR CSQ",
+        "width": 320,
+        "height": 240,
+        "emissivity": 0.9599999785423279,
+        "distance": 1,
+        "reflected": 16.999993896484398,
+        "air": 16.999993896484398,
+        "humidity": 56.99999928474426,
+        "planck": {
+          "r1": 16002.7138671875,
+          "b": 1417.800048828125,
+          "f": 1,
+          "o": -5030,
+          "r2": 0.011601288802921772
+        }
+      },
+      "raw_count_mismatches": 0,
+      "metadata_differences": {
+        "distance": {
+          "file": 0.0,
+          "thermview": 1
+        }
+      },
+      "planck_constants_match": true,
+      "temperature_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 0.10308178750025832,
+        "mean_abs_c": 0.02977958250979429
+      },
+      "thermview_assumptions_diagnostic": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 9.534692821944191e-07,
+        "mean_abs_c": 3.0781533800168977e-07
+      },
+      "status": "DIFFERENCE"
+    },
+    {
+      "case": "CSQ frame 1519",
+      "source_sha256": "a1a135993f143d9d5f5b63fd71ce820b2cd1f8ce85fda9493c3978e8862a84cc",
+      "source_metadata": {
+        "Emissivity": 0.959999978542328,
+        "ObjectDistance": 0,
+        "ReflectedApparentTemperature": 16.9999938964844,
+        "AtmosphericTemperature": 16.9999938964844,
+        "IRWindowTemperature": 19.9999938964844,
+        "IRWindowTransmission": 1,
+        "RelativeHumidity": 0.569999992847443,
+        "PlanckR1": 16002.7138671875,
+        "PlanckB": 1417.80004882812,
+        "PlanckF": 1,
+        "PlanckO": -5030,
+        "PlanckR2": 0.0116012888029218,
+        "AtmosphericTransAlpha1": 1.23900001369748e-08,
+        "AtmosphericTransAlpha2": 1.10949995857368e-08,
+        "AtmosphericTransBeta1": "0.00317999999970198",
+        "AtmosphericTransBeta2": "0.00318020000122488",
+        "AtmosphericTransX": 0.73199999332428
+      },
+      "reference_decoded": true,
+      "thermimage": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.298261645571,
+        "max_c": 34.7829025674633,
+        "mean_c": 16.202521987716853
+      },
+      "csq_converter": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.298261645571017,
+        "max_c": 34.78290256746328,
+        "mean_c": 16.20252198771685
+      },
+      "reference_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 4.973799150320701e-14,
+        "mean_abs_c": 2.4965053172879928e-14
+      },
+      "thermview": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.248642921447754,
+        "max_c": 34.9212760925293,
+        "mean_c": 16.19502044647932
+      },
+      "thermview_metadata": {
+        "format": "FLIR CSQ",
+        "width": 320,
+        "height": 240,
+        "emissivity": 0.9599999785423279,
+        "distance": 1,
+        "reflected": 16.999993896484398,
+        "air": 16.999993896484398,
+        "humidity": 56.99999928474426,
+        "planck": {
+          "r1": 16002.7138671875,
+          "b": 1417.800048828125,
+          "f": 1,
+          "o": -5030,
+          "r2": 0.011601288802921772
+        }
+      },
+      "raw_count_mismatches": 0,
+      "metadata_differences": {
+        "distance": {
+          "file": 0.0,
+          "thermview": 1
+        }
+      },
+      "planck_constants_match": true,
+      "temperature_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 0.13837352506599387,
+        "mean_abs_c": 0.031040325739407848
+      },
+      "thermview_assumptions_diagnostic": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 1.8561305523689953e-06,
+        "mean_abs_c": 3.223064042989776e-07
+      },
+      "status": "DIFFERENCE"
+    },
+    {
+      "case": "CSQ frame 3037",
+      "source_sha256": "43b95ab8805130998a53c2b6f715330a17e44432417654f196e032407edd35ce",
+      "source_metadata": {
+        "Emissivity": 0.959999978542328,
+        "ObjectDistance": 0,
+        "ReflectedApparentTemperature": 16.9999938964844,
+        "AtmosphericTemperature": 16.9999938964844,
+        "IRWindowTemperature": 19.9999938964844,
+        "IRWindowTransmission": 1,
+        "RelativeHumidity": 0.569999992847443,
+        "PlanckR1": 16002.7138671875,
+        "PlanckB": 1417.80004882812,
+        "PlanckF": 1,
+        "PlanckO": -5030,
+        "PlanckR2": 0.0116012888029218,
+        "AtmosphericTransAlpha1": 1.23900001369748e-08,
+        "AtmosphericTransAlpha2": 1.10949995857368e-08,
+        "AtmosphericTransBeta1": "0.00317999999970198",
+        "AtmosphericTransBeta2": "0.00318020000122488",
+        "AtmosphericTransX": 0.73199999332428
+      },
+      "reference_decoded": true,
+      "thermimage": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.2237001715419,
+        "max_c": 36.3643646951823,
+        "mean_c": 15.877118714130463
+      },
+      "csq_converter": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.223700171541907,
+        "max_c": 36.3643646951823,
+        "mean_c": 15.877118714130463
+      },
+      "reference_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 4.973799150320701e-14,
+        "mean_abs_c": 2.5189919594659216e-14
+      },
+      "thermview": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.17341136932373,
+        "max_c": 36.51409149169922,
+        "mean_c": 15.866929211616515
+      },
+      "thermview_metadata": {
+        "format": "FLIR CSQ",
+        "width": 320,
+        "height": 240,
+        "emissivity": 0.9599999785423279,
+        "distance": 1,
+        "reflected": 16.999993896484398,
+        "air": 16.999993896484398,
+        "humidity": 56.99999928474426,
+        "planck": {
+          "r1": 16002.7138671875,
+          "b": 1417.800048828125,
+          "f": 1,
+          "o": -5030,
+          "r2": 0.011601288802921772
+        }
+      },
+      "raw_count_mismatches": 0,
+      "metadata_differences": {
+        "distance": {
+          "file": 0.0,
+          "thermview": 1
+        }
+      },
+      "planck_constants_match": true,
+      "temperature_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 0.14972679651691578,
+        "mean_abs_c": 0.030832890355255032
+      },
+      "thermview_assumptions_diagnostic": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 1.8589275327940413e-06,
+        "mean_abs_c": 3.179225740816231e-07
+      },
+      "status": "DIFFERENCE"
+    },
+    {
+      "case": "CSQ frame 4555",
+      "source_sha256": "68d5e475663a89390fe7793595267abeae844a62817fef93f29a303ba3fe35d7",
+      "source_metadata": {
+        "Emissivity": 0.959999978542328,
+        "ObjectDistance": 0,
+        "ReflectedApparentTemperature": 16.9999938964844,
+        "AtmosphericTemperature": 16.9999938964844,
+        "IRWindowTemperature": 19.9999938964844,
+        "IRWindowTransmission": 1,
+        "RelativeHumidity": 0.569999992847443,
+        "PlanckR1": 16002.7138671875,
+        "PlanckB": 1417.80004882812,
+        "PlanckF": 1,
+        "PlanckO": -5030,
+        "PlanckR2": 0.0116012888029218,
+        "AtmosphericTransAlpha1": 1.23900001369748e-08,
+        "AtmosphericTransAlpha2": 1.10949995857368e-08,
+        "AtmosphericTransBeta1": "0.00317999999970198",
+        "AtmosphericTransBeta2": "0.00318020000122488",
+        "AtmosphericTransX": 0.73199999332428
+      },
+      "reference_decoded": true,
+      "thermimage": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.2547747069601,
+        "max_c": 39.1311314983516,
+        "mean_c": 16.627272383308696
+      },
+      "csq_converter": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.25477470696012,
+        "max_c": 39.13113149835158,
+        "mean_c": 16.627272383308696
+      },
+      "reference_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 4.973799150320701e-14,
+        "mean_abs_c": 2.5052390717483773e-14
+      },
+      "thermview": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.204765319824219,
+        "max_c": 39.3004150390625,
+        "mean_c": 16.623234801429014
+      },
+      "thermview_metadata": {
+        "format": "FLIR CSQ",
+        "width": 320,
+        "height": 240,
+        "emissivity": 0.9599999785423279,
+        "distance": 1,
+        "reflected": 16.999993896484398,
+        "air": 16.999993896484398,
+        "humidity": 56.99999928474426,
+        "planck": {
+          "r1": 16002.7138671875,
+          "b": 1417.800048828125,
+          "f": 1,
+          "o": -5030,
+          "r2": 0.011601288802921772
+        }
+      },
+      "raw_count_mismatches": 0,
+      "metadata_differences": {
+        "distance": {
+          "file": 0.0,
+          "thermview": 1
+        }
+      },
+      "planck_constants_match": true,
+      "temperature_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 0.16928354071090013,
+        "mean_abs_c": 0.032781547101837574
+      },
+      "thermview_assumptions_diagnostic": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 1.9014599388356146e-06,
+        "mean_abs_c": 3.2619173822245885e-07
+      },
+      "status": "DIFFERENCE"
+    },
+    {
+      "case": "CSQ frame 5526",
+      "source_sha256": "60806d82ccc66090fd1e356107262e650806f39861615e329f4eee14ecca4097",
+      "source_metadata": {
+        "Emissivity": 0.959999978542328,
+        "ObjectDistance": 0,
+        "ReflectedApparentTemperature": 16.9999938964844,
+        "AtmosphericTemperature": 16.9999938964844,
+        "IRWindowTemperature": 19.9999938964844,
+        "IRWindowTransmission": 1,
+        "RelativeHumidity": 0.569999992847443,
+        "PlanckR1": 16002.7138671875,
+        "PlanckB": 1417.80004882812,
+        "PlanckF": 1,
+        "PlanckO": -5030,
+        "PlanckR2": 0.0116012888029218,
+        "AtmosphericTransAlpha1": 1.23900001369748e-08,
+        "AtmosphericTransAlpha2": 1.10949995857368e-08,
+        "AtmosphericTransBeta1": "0.00317999999970198",
+        "AtmosphericTransBeta2": "0.00318020000122488",
+        "AtmosphericTransX": 0.73199999332428
+      },
+      "reference_decoded": true,
+      "thermimage": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.3913796584816,
+        "max_c": 38.0736013817254,
+        "mean_c": 15.602406909615814
+      },
+      "csq_converter": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.39137965848164,
+        "max_c": 38.07360138172544,
+        "mean_c": 15.602406909615814
+      },
+      "reference_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 4.973799150320701e-14,
+        "mean_abs_c": 2.5375835691991238e-14
+      },
+      "thermview": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.342596054077148,
+        "max_c": 38.23545455932617,
+        "mean_c": 15.589972049432497
+      },
+      "thermview_metadata": {
+        "format": "FLIR CSQ",
+        "width": 320,
+        "height": 240,
+        "emissivity": 0.9599999785423279,
+        "distance": 1,
+        "reflected": 16.999993896484398,
+        "air": 16.999993896484398,
+        "humidity": 56.99999928474426,
+        "planck": {
+          "r1": 16002.7138671875,
+          "b": 1417.800048828125,
+          "f": 1,
+          "o": -5030,
+          "r2": 0.011601288802921772
+        }
+      },
+      "raw_count_mismatches": 0,
+      "metadata_differences": {
+        "distance": {
+          "file": 0.0,
+          "thermview": 1
+        }
+      },
+      "planck_constants_match": true,
+      "temperature_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 0.16185317760076856,
+        "mean_abs_c": 0.029358464839350937
+      },
+      "thermview_assumptions_diagnostic": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 1.8960286070068832e-06,
+        "mean_abs_c": 3.0913118217457123e-07
+      },
+      "status": "DIFFERENCE"
+    },
+    {
+      "case": "CSQ frame 5527",
+      "source_sha256": "c965883b973e7ec26f031754416c525675f551c831caf4a023c1acaa86cad2ee",
+      "source_metadata": {
+        "Emissivity": 0.959999978542328,
+        "ObjectDistance": 0,
+        "ReflectedApparentTemperature": 16.9999938964844,
+        "AtmosphericTemperature": 16.9999938964844,
+        "IRWindowTemperature": 19.9999938964844,
+        "IRWindowTransmission": 1,
+        "RelativeHumidity": 0.569999992847443,
+        "PlanckR1": 16002.7138671875,
+        "PlanckB": 1417.80004882812,
+        "PlanckF": 1,
+        "PlanckO": -5030,
+        "PlanckR2": 0.0116012888029218,
+        "AtmosphericTransAlpha1": 1.23900001369748e-08,
+        "AtmosphericTransAlpha2": 1.10949995857368e-08,
+        "AtmosphericTransBeta1": "0.00317999999970198",
+        "AtmosphericTransBeta2": "0.00318020000122488",
+        "AtmosphericTransX": 0.73199999332428
+      },
+      "reference_decoded": true,
+      "thermimage": {
+        "valid_pixels": 76761,
+        "invalid_pixels": 39,
+        "min_c": 11.3727634961753,
+        "max_c": 38.0399491723776,
+        "mean_c": 15.597269400921812
+      },
+      "csq_converter": {
+        "valid_pixels": 76761,
+        "invalid_pixels": 39,
+        "min_c": 11.37276349617531,
+        "max_c": 38.03994917237759,
+        "mean_c": 15.597269400921816
+      },
+      "reference_agreement": {
+        "pixels": 76800,
+        "compared": 76761,
+        "validity_mismatches": 0,
+        "max_abs_c": 4.973799150320701e-14,
+        "mean_abs_c": 2.523340334334978e-14
+      },
+      "thermview_error": "CSQ frame 5527: raw data: JPEG-LS: Invalid JPEG-LS stream, the encoded bit stream contains a general structural problem",
+      "status": "THERMVIEW_DECODE_FAILED"
+    },
+    {
+      "case": "CSQ frame 5528",
+      "source_sha256": "da98995c08e854ccdb2a88b41432fd3bf73ce2d9d2bafa23a352f59c45ee10a0",
+      "source_metadata": {
+        "Emissivity": 0.959999978542328,
+        "ObjectDistance": 0,
+        "ReflectedApparentTemperature": 16.9999938964844,
+        "AtmosphericTemperature": 16.9999938964844,
+        "IRWindowTemperature": 19.9999938964844,
+        "IRWindowTransmission": 1,
+        "RelativeHumidity": 0.569999992847443,
+        "PlanckR1": 16002.7138671875,
+        "PlanckB": 1417.80004882812,
+        "PlanckF": 1,
+        "PlanckO": -5030,
+        "PlanckR2": 0.0116012888029218,
+        "AtmosphericTransAlpha1": 1.23900001369748e-08,
+        "AtmosphericTransAlpha2": 1.10949995857368e-08,
+        "AtmosphericTransBeta1": "0.00317999999970198",
+        "AtmosphericTransBeta2": "0.00318020000122488",
+        "AtmosphericTransX": 0.73199999332428
+      },
+      "reference_decoded": true,
+      "thermimage": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.3851746840311,
+        "max_c": 38.0639874496645,
+        "mean_c": 15.58463609555297
+      },
+      "csq_converter": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.385174684031085,
+        "max_c": 38.06398744966447,
+        "mean_c": 15.58463609555297
+      },
+      "reference_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 4.973799150320701e-14,
+        "mean_abs_c": 2.5308875365818533e-14
+      },
+      "thermview": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.336335182189941,
+        "max_c": 38.225772857666016,
+        "mean_c": 15.572052174806595
+      },
+      "thermview_metadata": {
+        "format": "FLIR CSQ",
+        "width": 320,
+        "height": 240,
+        "emissivity": 0.9599999785423279,
+        "distance": 1,
+        "reflected": 16.999993896484398,
+        "air": 16.999993896484398,
+        "humidity": 56.99999928474426,
+        "planck": {
+          "r1": 16002.7138671875,
+          "b": 1417.800048828125,
+          "f": 1,
+          "o": -5030,
+          "r2": 0.011601288802921772
+        }
+      },
+      "raw_count_mismatches": 0,
+      "metadata_differences": {
+        "distance": {
+          "file": 0.0,
+          "thermview": 1
+        }
+      },
+      "planck_constants_match": true,
+      "temperature_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 0.16178540800151353,
+        "mean_abs_c": 0.029364118080976186
+      },
+      "thermview_assumptions_diagnostic": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 1.8712456153480161e-06,
+        "mean_abs_c": 3.1069211717064483e-07
+      },
+      "status": "DIFFERENCE"
+    },
+    {
+      "case": "CSQ frame 6074",
+      "source_sha256": "d5a7f67830503b09d07742cff5b3325098e7551f55df6e361e1d5f4315be158f",
+      "source_metadata": {
+        "Emissivity": 0.959999978542328,
+        "ObjectDistance": 0,
+        "ReflectedApparentTemperature": 16.9999938964844,
+        "AtmosphericTemperature": 16.9999938964844,
+        "IRWindowTemperature": 19.9999938964844,
+        "IRWindowTransmission": 1,
+        "RelativeHumidity": 0.569999992847443,
+        "PlanckR1": 16002.7138671875,
+        "PlanckB": 1417.80004882812,
+        "PlanckF": 1,
+        "PlanckO": -5030,
+        "PlanckR2": 0.0116012888029218,
+        "AtmosphericTransAlpha1": 1.23900001369748e-08,
+        "AtmosphericTransAlpha2": 1.10949995857368e-08,
+        "AtmosphericTransBeta1": "0.00317999999970198",
+        "AtmosphericTransBeta2": "0.00318020000122488",
+        "AtmosphericTransX": 0.73199999332428
+      },
+      "reference_decoded": true,
+      "thermimage": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.515392545833,
+        "max_c": 35.6696300522278,
+        "mean_c": 16.024747476619236
+      },
+      "csq_converter": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.51539254583298,
+        "max_c": 35.669630052227774,
+        "mean_c": 16.024747476619243
+      },
+      "reference_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 4.973799150320701e-14,
+        "mean_abs_c": 2.530108067499981e-14
+      },
+      "thermview": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.467720031738281,
+        "max_c": 35.81438446044922,
+        "mean_c": 16.015856373757124
+      },
+      "thermview_metadata": {
+        "format": "FLIR CSQ",
+        "width": 320,
+        "height": 240,
+        "emissivity": 0.9599999785423279,
+        "distance": 1,
+        "reflected": 16.999993896484398,
+        "air": 16.999993896484398,
+        "humidity": 56.99999928474426,
+        "planck": {
+          "r1": 16002.7138671875,
+          "b": 1417.800048828125,
+          "f": 1,
+          "o": -5030,
+          "r2": 0.011601288802921772
+        }
+      },
+      "raw_count_mismatches": 0,
+      "metadata_differences": {
+        "distance": {
+          "file": 0.0,
+          "thermview": 1
+        }
+      },
+      "planck_constants_match": true,
+      "temperature_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 0.1447544082214165,
+        "mean_abs_c": 0.029221808870213084
+      },
+      "thermview_assumptions_diagnostic": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 1.8986369241247303e-06,
+        "mean_abs_c": 3.2520330589166e-07
+      },
+      "status": "DIFFERENCE"
+    },
+    {
+      "case": "CSQ frame 7592",
+      "source_sha256": "02785ff099a63c1a9419470b20a6e726f4608eaf935cd090c6888a9bd4517e0f",
+      "source_metadata": {
+        "Emissivity": 0.959999978542328,
+        "ObjectDistance": 0,
+        "ReflectedApparentTemperature": 16.9999938964844,
+        "AtmosphericTemperature": 16.9999938964844,
+        "IRWindowTemperature": 19.9999938964844,
+        "IRWindowTransmission": 1,
+        "RelativeHumidity": 0.569999992847443,
+        "PlanckR1": 16002.7138671875,
+        "PlanckB": 1417.80004882812,
+        "PlanckF": 1,
+        "PlanckO": -5030,
+        "PlanckR2": 0.0116012888029218,
+        "AtmosphericTransAlpha1": 1.23900001369748e-08,
+        "AtmosphericTransAlpha2": 1.10949995857368e-08,
+        "AtmosphericTransBeta1": "0.00317999999970198",
+        "AtmosphericTransBeta2": "0.00318020000122488",
+        "AtmosphericTransX": 0.73199999332428
+      },
+      "reference_decoded": true,
+      "thermimage": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.57114462961,
+        "max_c": 29.9478399992108,
+        "mean_c": 15.947900587921607
+      },
+      "csq_converter": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.57114462960999,
+        "max_c": 29.947839999210828,
+        "mean_c": 15.947900587921607
+      },
+      "reference_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 4.973799150320701e-14,
+        "mean_abs_c": 2.545854730732581e-14
+      },
+      "thermview": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.523971557617188,
+        "max_c": 30.05065155029297,
+        "mean_c": 15.938307978262504
+      },
+      "thermview_metadata": {
+        "format": "FLIR CSQ",
+        "width": 320,
+        "height": 240,
+        "emissivity": 0.9599999785423279,
+        "distance": 1,
+        "reflected": 16.999993896484398,
+        "air": 16.999993896484398,
+        "humidity": 56.99999928474426,
+        "planck": {
+          "r1": 16002.7138671875,
+          "b": 1417.800048828125,
+          "f": 1,
+          "o": -5030,
+          "r2": 0.011601288802921772
+        }
+      },
+      "raw_count_mismatches": 0,
+      "metadata_differences": {
+        "distance": {
+          "file": 0.0,
+          "thermview": 1
+        }
+      },
+      "planck_constants_match": true,
+      "temperature_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 0.10281155108216922,
+        "mean_abs_c": 0.030413258469168713
+      },
+      "thermview_assumptions_diagnostic": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 9.534692821944191e-07,
+        "mean_abs_c": 3.1347082844875493e-07
+      },
+      "status": "DIFFERENCE"
+    },
+    {
+      "case": "CSQ frame 9110",
+      "source_sha256": "4352f304162f338630145915f350a6afd2ed17918863b94854aba63a0a80f509",
+      "source_metadata": {
+        "Emissivity": 0.959999978542328,
+        "ObjectDistance": 0,
+        "ReflectedApparentTemperature": 16.9999938964844,
+        "AtmosphericTemperature": 16.9999938964844,
+        "IRWindowTemperature": 19.9999938964844,
+        "IRWindowTransmission": 1,
+        "RelativeHumidity": 0.569999992847443,
+        "PlanckR1": 16002.7138671875,
+        "PlanckB": 1417.80004882812,
+        "PlanckF": 1,
+        "PlanckO": -5030,
+        "PlanckR2": 0.0116012888029218,
+        "AtmosphericTransAlpha1": 1.23900001369748e-08,
+        "AtmosphericTransAlpha2": 1.10949995857368e-08,
+        "AtmosphericTransBeta1": "0.00317999999970198",
+        "AtmosphericTransBeta2": "0.00318020000122488",
+        "AtmosphericTransX": 0.73199999332428
+      },
+      "reference_decoded": true,
+      "thermimage": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.7814639084058,
+        "max_c": 33.9041857257342,
+        "mean_c": 16.159428280980116
+      },
+      "csq_converter": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.781463908405783,
+        "max_c": 33.90418572573424,
+        "mean_c": 16.159428280980123
+      },
+      "reference_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 4.973799150320701e-14,
+        "mean_abs_c": 2.529055668591222e-14
+      },
+      "thermview": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.73617172241211,
+        "max_c": 34.03619384765625,
+        "mean_c": 16.15154938035955
+      },
+      "thermview_metadata": {
+        "format": "FLIR CSQ",
+        "width": 320,
+        "height": 240,
+        "emissivity": 0.9599999785423279,
+        "distance": 1,
+        "reflected": 16.999993896484398,
+        "air": 16.999993896484398,
+        "humidity": 56.99999928474426,
+        "planck": {
+          "r1": 16002.7138671875,
+          "b": 1417.800048828125,
+          "f": 1,
+          "o": -5030,
+          "r2": 0.011601288802921772
+        }
+      },
+      "raw_count_mismatches": 0,
+      "metadata_differences": {
+        "distance": {
+          "file": 0.0,
+          "thermview": 1
+        }
+      },
+      "planck_constants_match": true,
+      "temperature_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 0.13200812192204836,
+        "mean_abs_c": 0.031798897018169264
+      },
+      "thermview_assumptions_diagnostic": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 1.8990600096913113e-06,
+        "mean_abs_c": 3.1162748745335494e-07
+      },
+      "status": "DIFFERENCE"
+    },
+    {
+      "case": "CSQ frame 10628",
+      "source_sha256": "8ac7f308ddf82047162e6292c6b1ad2abe212cd3881b7d6437b2ee1a6843f3b5",
+      "source_metadata": {
+        "Emissivity": 0.959999978542328,
+        "ObjectDistance": 0,
+        "ReflectedApparentTemperature": 16.9999938964844,
+        "AtmosphericTemperature": 16.9999938964844,
+        "IRWindowTemperature": 19.9999938964844,
+        "IRWindowTransmission": 1,
+        "RelativeHumidity": 0.569999992847443,
+        "PlanckR1": 16002.7138671875,
+        "PlanckB": 1417.80004882812,
+        "PlanckF": 1,
+        "PlanckO": -5030,
+        "PlanckR2": 0.0116012888029218,
+        "AtmosphericTransAlpha1": 1.23900001369748e-08,
+        "AtmosphericTransAlpha2": 1.10949995857368e-08,
+        "AtmosphericTransBeta1": "0.00317999999970198",
+        "AtmosphericTransBeta2": "0.00318020000122488",
+        "AtmosphericTransX": 0.73199999332428
+      },
+      "reference_decoded": true,
+      "thermimage": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.9974763883991,
+        "max_c": 30.663280816955,
+        "mean_c": 16.032529298999858
+      },
+      "csq_converter": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.99747638839915,
+        "max_c": 30.663280816954966,
+        "mean_c": 16.032529298999858
+      },
+      "reference_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 4.973799150320701e-14,
+        "mean_abs_c": 2.4844570845061753e-14
+      },
+      "thermview": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.954110145568848,
+        "max_c": 30.771440505981445,
+        "mean_c": 16.023721314494807
+      },
+      "thermview_metadata": {
+        "format": "FLIR CSQ",
+        "width": 320,
+        "height": 240,
+        "emissivity": 0.9599999785423279,
+        "distance": 1,
+        "reflected": 16.999993896484398,
+        "air": 16.999993896484398,
+        "humidity": 56.99999928474426,
+        "planck": {
+          "r1": 16002.7138671875,
+          "b": 1417.800048828125,
+          "f": 1,
+          "o": -5030,
+          "r2": 0.011601288802921772
+        }
+      },
+      "raw_count_mismatches": 0,
+      "metadata_differences": {
+        "distance": {
+          "file": 0.0,
+          "thermview": 1
+        }
+      },
+      "planck_constants_match": true,
+      "temperature_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 0.10815968902644357,
+        "mean_abs_c": 0.028798509737500762
+      },
+      "thermview_assumptions_diagnostic": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 9.534692821944191e-07,
+        "mean_abs_c": 3.093448133695276e-07
+      },
+      "status": "DIFFERENCE"
+    },
+    {
+      "case": "CSQ frame 11147",
+      "source_sha256": "0ffca742e74b3b0060007a4464168a2c2347e63fa71a5fbc361ad476fc50f00e",
+      "source_metadata": {
+        "Emissivity": 0.959999978542328,
+        "ObjectDistance": 0,
+        "ReflectedApparentTemperature": 16.9999938964844,
+        "AtmosphericTemperature": 16.9999938964844,
+        "IRWindowTemperature": 19.9999938964844,
+        "IRWindowTransmission": 1,
+        "RelativeHumidity": 0.569999992847443,
+        "PlanckR1": 16002.7138671875,
+        "PlanckB": 1417.80004882812,
+        "PlanckF": 1,
+        "PlanckO": -5030,
+        "PlanckR2": 0.0116012888029218,
+        "AtmosphericTransAlpha1": 1.23900001369748e-08,
+        "AtmosphericTransAlpha2": 1.10949995857368e-08,
+        "AtmosphericTransBeta1": "0.00317999999970198",
+        "AtmosphericTransBeta2": "0.00318020000122488",
+        "AtmosphericTransX": 0.73199999332428
+      },
+      "reference_decoded": true,
+      "thermimage": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.7382015375217,
+        "max_c": 30.2417857127609,
+        "mean_c": 15.691028432156651
+      },
+      "csq_converter": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.738201537521661,
+        "max_c": 30.241785712760873,
+        "mean_c": 15.691028432156655
+      },
+      "reference_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 4.973799150320701e-14,
+        "mean_abs_c": 2.503934559694443e-14
+      },
+      "thermview": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.692522048950195,
+        "max_c": 30.346797943115234,
+        "mean_c": 15.679396416718761
+      },
+      "thermview_metadata": {
+        "format": "FLIR CSQ",
+        "width": 320,
+        "height": 240,
+        "emissivity": 0.9599999785423279,
+        "distance": 1,
+        "reflected": 16.999993896484398,
+        "air": 16.999993896484398,
+        "humidity": 56.99999928474426,
+        "planck": {
+          "r1": 16002.7138671875,
+          "b": 1417.800048828125,
+          "f": 1,
+          "o": -5030,
+          "r2": 0.011601288802921772
+        }
+      },
+      "raw_count_mismatches": 0,
+      "metadata_differences": {
+        "distance": {
+          "file": 0.0,
+          "thermview": 1
+        }
+      },
+      "planck_constants_match": true,
+      "temperature_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 0.10501223035433327,
+        "mean_abs_c": 0.028186969088210685
+      },
+      "thermview_assumptions_diagnostic": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 9.534692821944191e-07,
+        "mean_abs_c": 3.0665283391758297e-07
+      },
+      "status": "DIFFERENCE"
+    },
+    {
+      "case": "CSQ frame 11148",
+      "source_sha256": "d7b8b40e2185f5659b1845dc6de72b598dac8cad617bfca344d8e1195eb363cb",
+      "source_metadata": {
+        "Emissivity": 0.959999978542328,
+        "ObjectDistance": 0,
+        "ReflectedApparentTemperature": 16.9999938964844,
+        "AtmosphericTemperature": 16.9999938964844,
+        "IRWindowTemperature": 19.9999938964844,
+        "IRWindowTransmission": 1,
+        "RelativeHumidity": 0.569999992847443,
+        "PlanckR1": 16002.7138671875,
+        "PlanckB": 1417.80004882812,
+        "PlanckF": 1,
+        "PlanckO": -5030,
+        "PlanckR2": 0.0116012888029218,
+        "AtmosphericTransAlpha1": 1.23900001369748e-08,
+        "AtmosphericTransAlpha2": 1.10949995857368e-08,
+        "AtmosphericTransBeta1": "0.00317999999970198",
+        "AtmosphericTransBeta2": "0.00318020000122488",
+        "AtmosphericTransX": 0.73199999332428
+      },
+      "reference_decoded": true,
+      "thermimage": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.7134711961276,
+        "max_c": 30.3961785675025,
+        "mean_c": 15.686400026725906
+      },
+      "csq_converter": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.713471196127557,
+        "max_c": 30.39617856750249,
+        "mean_c": 15.686400026725911
+      },
+      "reference_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 4.973799150320701e-14,
+        "mean_abs_c": 2.495450605414599e-14
+      },
+      "thermview": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.667571067810059,
+        "max_c": 30.502344131469727,
+        "mean_c": 15.674728823738793
+      },
+      "thermview_metadata": {
+        "format": "FLIR CSQ",
+        "width": 320,
+        "height": 240,
+        "emissivity": 0.9599999785423279,
+        "distance": 1,
+        "reflected": 16.999993896484398,
+        "air": 16.999993896484398,
+        "humidity": 56.99999928474426,
+        "planck": {
+          "r1": 16002.7138671875,
+          "b": 1417.800048828125,
+          "f": 1,
+          "o": -5030,
+          "r2": 0.011601288802921772
+        }
+      },
+      "raw_count_mismatches": 0,
+      "metadata_differences": {
+        "distance": {
+          "file": 0.0,
+          "thermview": 1
+        }
+      },
+      "planck_constants_match": true,
+      "temperature_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 0.10616556396722743,
+        "mean_abs_c": 0.028198481566358034
+      },
+      "thermview_assumptions_diagnostic": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 9.534692821944191e-07,
+        "mean_abs_c": 3.0612714252420403e-07
+      },
+      "status": "DIFFERENCE"
+    },
+    {
+      "case": "CSQ frame 11149",
+      "source_sha256": "9e455a0c9932f501f0edd60cd39825b63d1d4915a99ae081352a1b94c755b2bd",
+      "source_metadata": {
+        "Emissivity": 0.959999978542328,
+        "ObjectDistance": 0,
+        "ReflectedApparentTemperature": 16.9999938964844,
+        "AtmosphericTemperature": 16.9999938964844,
+        "IRWindowTemperature": 19.9999938964844,
+        "IRWindowTransmission": 1,
+        "RelativeHumidity": 0.569999992847443,
+        "PlanckR1": 16002.7138671875,
+        "PlanckB": 1417.80004882812,
+        "PlanckF": 1,
+        "PlanckO": -5030,
+        "PlanckR2": 0.0116012888029218,
+        "AtmosphericTransAlpha1": 1.23900001369748e-08,
+        "AtmosphericTransAlpha2": 1.10949995857368e-08,
+        "AtmosphericTransBeta1": "0.00317999999970198",
+        "AtmosphericTransBeta2": "0.00318020000122488",
+        "AtmosphericTransX": 0.73199999332428
+      },
+      "reference_decoded": true,
+      "thermimage": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.688734312896,
+        "max_c": 30.3858924517377,
+        "mean_c": 15.678691270335253
+      },
+      "csq_converter": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.688734312896031,
+        "max_c": 30.385892451737675,
+        "mean_c": 15.678691270335253
+      },
+      "reference_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 4.973799150320701e-14,
+        "mean_abs_c": 2.498753518912859e-14
+      },
+      "thermview": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.642613410949707,
+        "max_c": 30.491981506347656,
+        "mean_c": 15.66695461196204
+      },
+      "thermview_metadata": {
+        "format": "FLIR CSQ",
+        "width": 320,
+        "height": 240,
+        "emissivity": 0.9599999785423279,
+        "distance": 1,
+        "reflected": 16.999993896484398,
+        "air": 16.999993896484398,
+        "humidity": 56.99999928474426,
+        "planck": {
+          "r1": 16002.7138671875,
+          "b": 1417.800048828125,
+          "f": 1,
+          "o": -5030,
+          "r2": 0.011601288802921772
+        }
+      },
+      "raw_count_mismatches": 0,
+      "metadata_differences": {
+        "distance": {
+          "file": 0.0,
+          "thermview": 1
+        }
+      },
+      "planck_constants_match": true,
+      "temperature_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 0.10608905460995643,
+        "mean_abs_c": 0.028224907981944717
+      },
+      "thermview_assumptions_diagnostic": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 9.533124512017821e-07,
+        "mean_abs_c": 3.0639954391305697e-07
+      },
+      "status": "DIFFERENCE"
+    },
+    {
+      "case": "CSQ frame 12147",
+      "source_sha256": "4907c84d13d1599603fd0f6707b38a58e53779f8fc0aa57e4a29eafaffb0220d",
+      "source_metadata": {
+        "Emissivity": 0.959999978542328,
+        "ObjectDistance": 0,
+        "ReflectedApparentTemperature": 16.9999938964844,
+        "AtmosphericTemperature": 16.9999938964844,
+        "IRWindowTemperature": 19.9999938964844,
+        "IRWindowTransmission": 1,
+        "RelativeHumidity": 0.569999992847443,
+        "PlanckR1": 16002.7138671875,
+        "PlanckB": 1417.80004882812,
+        "PlanckF": 1,
+        "PlanckO": -5030,
+        "PlanckR2": 0.0116012888029218,
+        "AtmosphericTransAlpha1": 1.23900001369748e-08,
+        "AtmosphericTransAlpha2": 1.10949995857368e-08,
+        "AtmosphericTransBeta1": "0.00317999999970198",
+        "AtmosphericTransBeta2": "0.00318020000122488",
+        "AtmosphericTransX": 0.73199999332428
+      },
+      "reference_decoded": true,
+      "thermimage": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.6578040019204,
+        "max_c": 29.6479258918019,
+        "mean_c": 16.059201480421827
+      },
+      "csq_converter": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.657804001920397,
+        "max_c": 29.64792589180189,
+        "mean_c": 16.059201480421827
+      },
+      "reference_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 4.973799150320701e-14,
+        "mean_abs_c": 2.4906535167623644e-14
+      },
+      "thermview": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.611406326293945,
+        "max_c": 29.74848747253418,
+        "mean_c": 16.050652949983874
+      },
+      "thermview_metadata": {
+        "format": "FLIR CSQ",
+        "width": 320,
+        "height": 240,
+        "emissivity": 0.9599999785423279,
+        "distance": 1,
+        "reflected": 16.999993896484398,
+        "air": 16.999993896484398,
+        "humidity": 56.99999928474426,
+        "planck": {
+          "r1": 16002.7138671875,
+          "b": 1417.800048828125,
+          "f": 1,
+          "o": -5030,
+          "r2": 0.011601288802921772
+        }
+      },
+      "raw_count_mismatches": 0,
+      "metadata_differences": {
+        "distance": {
+          "file": 0.0,
+          "thermview": 1
+        }
+      },
+      "planck_constants_match": true,
+      "temperature_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 0.10056158073227905,
+        "mean_abs_c": 0.028563661000417132
+      },
+      "thermview_assumptions_diagnostic": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 9.534692821944191e-07,
+        "mean_abs_c": 3.1374025770543787e-07
+      },
+      "status": "DIFFERENCE"
+    },
+    {
+      "case": "CSQ frame 13665",
+      "source_sha256": "1c716081fd33b2180ae8fc3095cd9279048d1562105ede953c26b2e1543b8ee1",
+      "source_metadata": {
+        "Emissivity": 0.959999978542328,
+        "ObjectDistance": 0,
+        "ReflectedApparentTemperature": 16.9999938964844,
+        "AtmosphericTemperature": 16.9999938964844,
+        "IRWindowTemperature": 19.9999938964844,
+        "IRWindowTransmission": 1,
+        "RelativeHumidity": 0.569999992847443,
+        "PlanckR1": 16002.7138671875,
+        "PlanckB": 1417.80004882812,
+        "PlanckF": 1,
+        "PlanckO": -5030,
+        "PlanckR2": 0.0116012888029218,
+        "AtmosphericTransAlpha1": 1.23900001369748e-08,
+        "AtmosphericTransAlpha2": 1.10949995857368e-08,
+        "AtmosphericTransBeta1": "0.00317999999970198",
+        "AtmosphericTransBeta2": "0.00318020000122488",
+        "AtmosphericTransX": 0.73199999332428
+      },
+      "reference_decoded": true,
+      "thermimage": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.861755288295,
+        "max_c": 30.5143998484256,
+        "mean_c": 15.940564165091027
+      },
+      "csq_converter": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.861755288295,
+        "max_c": 30.514399848425626,
+        "mean_c": 15.940564165091027
+      },
+      "reference_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 4.973799150320701e-14,
+        "mean_abs_c": 2.4821302420837317e-14
+      },
+      "thermview": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.817179679870605,
+        "max_c": 30.621448516845703,
+        "mean_c": 15.930996114388108
+      },
+      "thermview_metadata": {
+        "format": "FLIR CSQ",
+        "width": 320,
+        "height": 240,
+        "emissivity": 0.9599999785423279,
+        "distance": 1,
+        "reflected": 16.999993896484398,
+        "air": 16.999993896484398,
+        "humidity": 56.99999928474426,
+        "planck": {
+          "r1": 16002.7138671875,
+          "b": 1417.800048828125,
+          "f": 1,
+          "o": -5030,
+          "r2": 0.011601288802921772
+        }
+      },
+      "raw_count_mismatches": 0,
+      "metadata_differences": {
+        "distance": {
+          "file": 0.0,
+          "thermview": 1
+        }
+      },
+      "planck_constants_match": true,
+      "temperature_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 0.10704866842010219,
+        "mean_abs_c": 0.028625153783780288
+      },
+      "thermview_assumptions_diagnostic": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 9.534692821944191e-07,
+        "mean_abs_c": 3.043135746424082e-07
+      },
+      "status": "DIFFERENCE"
+    },
+    {
+      "case": "CSQ frame 15183",
+      "source_sha256": "65ebe63fafe149c27feb536f8b855a9101ac83a88b948a61441de0af544351e6",
+      "source_metadata": {
+        "Emissivity": 0.959999978542328,
+        "ObjectDistance": 0,
+        "ReflectedApparentTemperature": 16.9999938964844,
+        "AtmosphericTemperature": 16.9999938964844,
+        "IRWindowTemperature": 19.9999938964844,
+        "IRWindowTransmission": 1,
+        "RelativeHumidity": 0.569999992847443,
+        "PlanckR1": 16002.7138671875,
+        "PlanckB": 1417.80004882812,
+        "PlanckF": 1,
+        "PlanckO": -5030,
+        "PlanckR2": 0.0116012888029218,
+        "AtmosphericTransAlpha1": 1.23900001369748e-08,
+        "AtmosphericTransAlpha2": 1.10949995857368e-08,
+        "AtmosphericTransBeta1": "0.00317999999970198",
+        "AtmosphericTransBeta2": "0.00318020000122488",
+        "AtmosphericTransX": 0.73199999332428
+      },
+      "reference_decoded": true,
+      "thermimage": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 12.0899009646124,
+        "max_c": 37.3938782938994,
+        "mean_c": 16.631705407042183
+      },
+      "csq_converter": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 12.089900964612411,
+        "max_c": 37.393878293899434,
+        "mean_c": 16.631705407042183
+      },
+      "reference_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 4.973799150320701e-14,
+        "mean_abs_c": 2.4804625945821594e-14
+      },
+      "thermview": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 12.047357559204102,
+        "max_c": 37.550926208496094,
+        "mean_c": 16.62790317180256
+      },
+      "thermview_metadata": {
+        "format": "FLIR CSQ",
+        "width": 320,
+        "height": 240,
+        "emissivity": 0.9599999785423279,
+        "distance": 1,
+        "reflected": 16.999993896484398,
+        "air": 16.999993896484398,
+        "humidity": 56.99999928474426,
+        "planck": {
+          "r1": 16002.7138671875,
+          "b": 1417.800048828125,
+          "f": 1,
+          "o": -5030,
+          "r2": 0.011601288802921772
+        }
+      },
+      "raw_count_mismatches": 0,
+      "metadata_differences": {
+        "distance": {
+          "file": 0.0,
+          "thermview": 1
+        }
+      },
+      "planck_constants_match": true,
+      "temperature_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 0.15704791459669565,
+        "mean_abs_c": 0.0287818604993729
+      },
+      "thermview_assumptions_diagnostic": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 1.8917514807981206e-06,
+        "mean_abs_c": 3.338868880775614e-07
+      },
+      "status": "DIFFERENCE"
+    },
+    {
+      "case": "CSQ frame 16702",
+      "source_sha256": "104cba8f0eb5864b02a31807608b29968895678b864dc37acfced3f7c5a2bb03",
+      "source_metadata": {
+        "Emissivity": 0.959999978542328,
+        "ObjectDistance": 0,
+        "ReflectedApparentTemperature": 16.9999938964844,
+        "AtmosphericTemperature": 16.9999938964844,
+        "IRWindowTemperature": 19.9999938964844,
+        "IRWindowTransmission": 1,
+        "RelativeHumidity": 0.569999992847443,
+        "PlanckR1": 16002.7138671875,
+        "PlanckB": 1417.80004882812,
+        "PlanckF": 1,
+        "PlanckO": -5030,
+        "PlanckR2": 0.0116012888029218,
+        "AtmosphericTransAlpha1": 1.23900001369748e-08,
+        "AtmosphericTransAlpha2": 1.10949995857368e-08,
+        "AtmosphericTransBeta1": "0.00317999999970198",
+        "AtmosphericTransBeta2": "0.00318020000122488",
+        "AtmosphericTransX": 0.73199999332428
+      },
+      "reference_decoded": true,
+      "thermimage": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 12.3850496565424,
+        "max_c": 32.7973723360995,
+        "mean_c": 16.885722495107633
+      },
+      "csq_converter": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 12.385049656542435,
+        "max_c": 32.7973723360995,
+        "mean_c": 16.885722495107636
+      },
+      "reference_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 4.973799150320701e-14,
+        "mean_abs_c": 2.4677366631623934e-14
+      },
+      "thermview": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 12.345128059387207,
+        "max_c": 32.921302795410156,
+        "mean_c": 16.884040325333675
+      },
+      "thermview_metadata": {
+        "format": "FLIR CSQ",
+        "width": 320,
+        "height": 240,
+        "emissivity": 0.9599999785423279,
+        "distance": 1,
+        "reflected": 16.999993896484398,
+        "air": 16.999993896484398,
+        "humidity": 56.99999928474426,
+        "planck": {
+          "r1": 16002.7138671875,
+          "b": 1417.800048828125,
+          "f": 1,
+          "o": -5030,
+          "r2": 0.011601288802921772
+        }
+      },
+      "raw_count_mismatches": 0,
+      "metadata_differences": {
+        "distance": {
+          "file": 0.0,
+          "thermview": 1
+        }
+      },
+      "planck_constants_match": true,
+      "temperature_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 0.12393045931065672,
+        "mean_abs_c": 0.02775441860073268
+      },
+      "thermview_assumptions_diagnostic": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 1.8964071841764962e-06,
+        "mean_abs_c": 3.2962478776118093e-07
+      },
+      "status": "DIFFERENCE"
+    },
+    {
+      "case": "07_10_26_14_30_Back_Circle_Thermal_000000_radiometric.jpg",
+      "source_sha256": "4b656a45eecc7aa2b52164061fd9965c35156e5ff01fd41b7a195058d7d80157",
+      "source_metadata": {
+        "Emissivity": 0.959999978542328,
+        "ObjectDistance": 0,
+        "ReflectedApparentTemperature": 16.9999938964844,
+        "AtmosphericTemperature": 16.9999938964844,
+        "IRWindowTemperature": 19.9999938964844,
+        "IRWindowTransmission": 1,
+        "RelativeHumidity": 0.569999992847443,
+        "PlanckR1": 16002.7138671875,
+        "PlanckB": 1417.80004882812,
+        "PlanckF": 1,
+        "PlanckO": -5030,
+        "PlanckR2": 0.0116012888029218,
+        "AtmosphericTransAlpha1": 1.23900001369748e-08,
+        "AtmosphericTransAlpha2": 1.10949995857368e-08,
+        "AtmosphericTransBeta1": "0.00317999999970198",
+        "AtmosphericTransBeta2": "0.00318020000122488",
+        "AtmosphericTransX": 0.73199999332428
+      },
+      "reference_decoded": true,
+      "thermimage": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.1490789387348,
+        "max_c": 29.9478399992108,
+        "mean_c": 15.311393015650564
+      },
+      "csq_converter": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.149078938734817,
+        "max_c": 29.947839999210828,
+        "mean_c": 15.311393015650564
+      },
+      "reference_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 4.973799150320701e-14,
+        "mean_abs_c": 2.4906928371611533e-14
+      },
+      "thermview": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.098118782043457,
+        "max_c": 30.05065155029297,
+        "mean_c": 15.296479321407775
+      },
+      "thermview_metadata": {
+        "format": "FLIR R-JPEG",
+        "width": 320,
+        "height": 240,
+        "emissivity": 0.9599999785423279,
+        "distance": 1,
+        "reflected": 16.999993896484398,
+        "air": 16.999993896484398,
+        "humidity": 56.99999928474426,
+        "planck": {
+          "r1": 16002.7138671875,
+          "b": 1417.800048828125,
+          "f": 1,
+          "o": -5030,
+          "r2": 0.011601288802921772
+        }
+      },
+      "raw_count_mismatches": 0,
+      "metadata_differences": {
+        "distance": {
+          "file": 0.0,
+          "thermview": 1
+        }
+      },
+      "planck_constants_match": true,
+      "temperature_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 0.10281155108216922,
+        "mean_abs_c": 0.029816395988663973
+      },
+      "thermview_assumptions_diagnostic": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 9.534692821944191e-07,
+        "mean_abs_c": 3.085127390171453e-07
+      },
+      "status": "DIFFERENCE"
+    },
+    {
+      "case": "07_10_26_14_30_Back_Circle_Thermal_000001_radiometric.jpg",
+      "source_sha256": "f9b69c753990d0124aef7894a3afbbfe8effafb56becb1b2e3a2aa5d89b8348c",
+      "source_metadata": {
+        "Emissivity": 0.959999978542328,
+        "ObjectDistance": 0,
+        "ReflectedApparentTemperature": 16.9999938964844,
+        "AtmosphericTemperature": 16.9999938964844,
+        "IRWindowTemperature": 19.9999938964844,
+        "IRWindowTransmission": 1,
+        "RelativeHumidity": 0.569999992847443,
+        "PlanckR1": 16002.7138671875,
+        "PlanckB": 1417.80004882812,
+        "PlanckF": 1,
+        "PlanckO": -5030,
+        "PlanckR2": 0.0116012888029218,
+        "AtmosphericTransAlpha1": 1.23900001369748e-08,
+        "AtmosphericTransAlpha2": 1.10949995857368e-08,
+        "AtmosphericTransBeta1": "0.00317999999970198",
+        "AtmosphericTransBeta2": "0.00318020000122488",
+        "AtmosphericTransX": 0.73199999332428
+      },
+      "reference_decoded": true,
+      "thermimage": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.1988330738352,
+        "max_c": 29.9530037358414,
+        "mean_c": 15.322919470005317
+      },
+      "csq_converter": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.198833073835203,
+        "max_c": 29.953003735841378,
+        "mean_c": 15.322919470005315
+      },
+      "reference_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 4.973799150320701e-14,
+        "mean_abs_c": 2.4851394090733927e-14
+      },
+      "thermview": {
+        "valid_pixels": 76800,
+        "invalid_pixels": 0,
+        "min_c": 11.148321151733398,
+        "max_c": 30.05585479736328,
+        "mean_c": 15.308103595351179
+      },
+      "thermview_metadata": {
+        "format": "FLIR R-JPEG",
+        "width": 320,
+        "height": 240,
+        "emissivity": 0.9599999785423279,
+        "distance": 1,
+        "reflected": 16.999993896484398,
+        "air": 16.999993896484398,
+        "humidity": 56.99999928474426,
+        "planck": {
+          "r1": 16002.7138671875,
+          "b": 1417.800048828125,
+          "f": 1,
+          "o": -5030,
+          "r2": 0.011601288802921772
+        }
+      },
+      "raw_count_mismatches": 0,
+      "metadata_differences": {
+        "distance": {
+          "file": 0.0,
+          "thermview": 1
+        }
+      },
+      "planck_constants_match": true,
+      "temperature_agreement": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 0.10285106152188206,
+        "mean_abs_c": 0.02980228808906139
+      },
+      "thermview_assumptions_diagnostic": {
+        "pixels": 76800,
+        "compared": 76800,
+        "validity_mismatches": 0,
+        "max_abs_c": 9.534692821944191e-07,
+        "mean_abs_c": 3.0814423404912363e-07
+      },
+      "status": "DIFFERENCE"
+    },
+    {
+      "case": "IR_2412.jpg",
+      "source_sha256": "2bd7ac42d752fcf6053d8fa54ef9315dfa8eab2f5b2c72a449f9c1a9af1c3a73",
+      "source_metadata": {
+        "Emissivity": 0.949999988079071,
+        "ObjectDistance": 1,
+        "ReflectedApparentTemperature": 19.9999938964844,
+        "AtmosphericTemperature": 19.9999938964844,
+        "IRWindowTemperature": 19.9999938964844,
+        "IRWindowTransmission": 1,
+        "RelativeHumidity": 0.5,
+        "PlanckR1": 21106.76953125,
+        "PlanckB": 1501,
+        "PlanckF": 1,
+        "PlanckO": -7340,
+        "PlanckR2": 0.012545257806778,
+        "AtmosphericTransAlpha1": "0.00656899996101856",
+        "AtmosphericTransAlpha2": 0.0126200001686811,
+        "AtmosphericTransBeta1": "-0.00227600010111928",
+        "AtmosphericTransBeta2": "-0.00667000003159046",
+        "AtmosphericTransX": 1.89999997615814
+      },
+      "reference_decoded": true,
+      "thermimage": {
+        "valid_pixels": 307200,
+        "invalid_pixels": 0,
+        "min_c": 22.7358942245615,
+        "max_c": 35.2504495923244,
+        "mean_c": 28.25899324461686
+      },
+      "csq_converter": {
+        "valid_pixels": 307200,
+        "invalid_pixels": 0,
+        "min_c": 22.73589422456149,
+        "max_c": 35.2504495923244,
+        "mean_c": 28.25899324461686
+      },
+      "reference_agreement": {
+        "pixels": 307200,
+        "compared": 307200,
+        "validity_mismatches": 0,
+        "max_abs_c": 4.973799150320701e-14,
+        "mean_abs_c": 2.4388049450300525e-14
+      },
+      "thermview": {
+        "valid_pixels": 307200,
+        "invalid_pixels": 0,
+        "min_c": 22.73589515686035,
+        "max_c": 35.250450134277344,
+        "mean_c": 28.258993224259466
+      },
+      "thermview_metadata": {
+        "format": "FLIR R-JPEG",
+        "width": 640,
+        "height": 480,
+        "emissivity": 0.949999988079071,
+        "distance": 1,
+        "reflected": 19.999993896484398,
+        "air": 19.999993896484398,
+        "humidity": 50,
+        "planck": {
+          "r1": 21106.76953125,
+          "b": 1501,
+          "f": 1,
+          "o": -7340,
+          "r2": 0.012545257806777954
+        }
+      },
+      "raw_count_mismatches": 0,
+      "metadata_differences": {},
+      "planck_constants_match": true,
+      "temperature_agreement": {
+        "pixels": 307200,
+        "compared": 307200,
+        "validity_mismatches": 0,
+        "max_abs_c": 1.9097733385819993e-06,
+        "mean_abs_c": 4.707266115103771e-07
+      },
+      "thermview_assumptions_diagnostic": {
+        "pixels": 307200,
+        "compared": 307200,
+        "validity_mismatches": 0,
+        "max_abs_c": 1.8930763872049283e-06,
+        "mean_abs_c": 4.712845818386861e-07
+      },
+      "status": "PASS"
+    }
+  ],
+  "csq": {
+    "name": "07_10_26_14_30_Back_Circle_Thermal.csq",
+    "sha256": "44ee42490609e4c50558de91a970c20db28a31582de7cea690540e471acb89ac",
+    "total_frames": 16702
+  },
+  "preview_independence": [
+    {
+      "colour": "black",
+      "visible_jpeg_changed": true,
+      "raw_counts_identical": true,
+      "temperatures_identical": true
+    },
+    {
+      "colour": "magenta",
+      "visible_jpeg_changed": true,
+      "raw_counts_identical": true,
+      "temperatures_identical": true
+    }
+  ]
+}

@@ -28,7 +28,14 @@ fn frame(counts: &[u16], little: bool) -> Vec<u8> {
         (0x24, 1.0),
         (0x28, 293.15),
         (0x2c, 293.15),
+        (0x30, 293.15),
+        (0x34, 1.0),
         (0x3c, 0.5),
+        (0x70, 0.006569),
+        (0x74, 0.01262),
+        (0x78, -0.002276),
+        (0x7c, -0.00667),
+        (0x80, 1.9),
         (0x58, 21106.77),
         (0x5c, 1501.0),
         (0x60, 1.0),
@@ -736,4 +743,22 @@ fn frames_without_valid_temperatures_are_reported_and_skipped() {
     assert_eq!(measurement.failures.len(), 1);
     assert_eq!(measurement.failures[0].frame, 1);
     assert!(measurement.failures[0].error.contains("no valid temperature"));
+}
+
+#[test]
+fn calibration_panel_preserves_stored_zero_distance() {
+    let counts = vec![15000; 48];
+    let mut bytes = frame(&counts, true);
+    let camera = u32::from_le_bytes(bytes[0x6c..0x70].try_into().unwrap()) as usize;
+    bytes[camera + 0x24..camera + 0x28].copy_from_slice(&0f32.to_le_bytes());
+    let mut h = Harness::new(1500.0, 950.0);
+    h.app.load(
+        &h.ctx.clone(),
+        Ok(Loaded { name: "zero.csq".into(), bytes, modified: None, path: None }),
+    );
+    let temperatures = h.app.doc.as_ref().unwrap().image.celsius.clone();
+    h.settle();
+    let doc = h.app.doc.as_ref().unwrap();
+    assert_eq!(doc.params().distance, 0.0);
+    assert_eq!(doc.image.celsius, temperatures);
 }

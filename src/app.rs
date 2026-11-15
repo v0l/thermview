@@ -1197,7 +1197,8 @@ fn calibration(ui: &mut Ui, doc: &mut Doc) {
     row(ui, "distance", |ui| {
         ui.add(
             egui::DragValue::new(&mut p.distance)
-                .range(0.1..=100.0)
+                .range(0.0..=100.0)
+                .clamp_existing_to_range(false)
                 .speed(0.05)
                 .fixed_decimals(1)
                 .suffix(" m"),

@@ -6,6 +6,8 @@ ThermView reads, renders and measures radiometric thermal images, natively on th
 
 This is a fork of [v0l/thermview](https://github.com/v0l/thermview). Use this fork's installers or source instructions below for its CSQ playback and range-measurement features. Launchers configured for the upstream project may install the original version instead.
 
+**Temperature validation:** temperatures come from embedded thermal data, with colours applied afterward. The [0.1.11 audit](docs/temperature-validation.md) found a maximum software discrepancy of **0.1693°C**. The current source uses the file's atmospheric coefficients and IR-window settings and preserves zero distance/humidity. A [follow-up comparison](docs/temperature-file-coefficients.md) matched all 22 readable cases within **0.00000191°C** against the saved reference rasters. This measures software agreement, not certified physical temperature accuracy.
+
 <p align="center">
   <img src="web/public/favicon.svg" width="64" alt="ThermView icon" />
 </p>
