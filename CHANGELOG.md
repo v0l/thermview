@@ -6,6 +6,8 @@ All notable changes to thermview are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-15
+
 ### Fixed
 - FLIR CSQ and radiometric JPEG conversion uses CameraInfo atmospheric coefficients and IR-window transmission/temperature, including during recalibration.
 - Preserve stored zero distance and humidity; accept percentage humidity using ExifTool's convention. Allow zero distance in the calibration panel.

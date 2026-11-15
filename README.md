@@ -14,6 +14,41 @@ This is a fork of [v0l/thermview](https://github.com/v0l/thermview). Use this fo
 
 ---
 
+## Temperature conversion improvements in v0.2.0
+
+FLIR CSQ and radiometric JPEG temperatures now use the calibration and environmental
+settings stored in each file, rather than substituting fixed atmospheric settings:
+
+- Read the file's atmospheric alpha 1/2, beta 1/2 and X coefficients, plus IR-window
+  temperature and transmission. Retain these settings for each frame and reuse
+  them when recalculating temperatures after user adjustments.
+- Preserve legitimate **0 m distance** and **0% humidity**, and accept humidity
+  stored as either a fraction or a percentage using ExifTool's convention. The
+  calibration panel now permits zero distance.
+- Report missing or invalid required CameraInfo calibration instead of silently
+  substituting generic Planck constants or searching unrelated bytes for values.
+
+Replaying the original validation samples against the saved Thermimage reference
+rasters gave the following results:
+
+| Check | v0.1.11 | v0.2.0 source validation |
+|---|---|---|
+| Largest absolute pixel temperature difference | 0.1693°C | 0.00000191°C |
+| Readable cases passing the 0.001°C agreement threshold | 1 of 22 | 22 of 22 |
+| Raw sensor-count mismatches | 0 | 0 |
+
+The comparison covers **1,920,000 pixels** across 19 readable sampled CSQ frames,
+two JPEG exports from that recording, and one public reference JPEG. Exported
+JPEGs duplicate recording content; these are not independent physical measurements.
+The recording contains 16,702 frames, of which 20 were sampled. **Frame 5527 still
+fails decoding** and has no validated ThermView temperatures.
+
+These results establish agreement with reference software on the tested inputs,
+not absolute camera accuracy. Vendor-software and calibrated physical-temperature
+comparisons remain outstanding. See the [original audit](docs/temperature-validation.md),
+[follow-up report](docs/temperature-file-coefficients.md), and
+[per-case results](docs/validation/temperature-file-coefficients-2026-11-15.json).
+
 ## Features
 
 | Feature | Description |
