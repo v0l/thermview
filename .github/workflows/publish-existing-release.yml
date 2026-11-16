@@ -38,7 +38,9 @@ jobs:
         run: |
           set -euo pipefail
           gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}" > source-run.json
-          tag_sha=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${RELEASE_TAG}" --jq .sha)
+          git fetch --no-tags origin "refs/tags/${RELEASE_TAG}"
+          tag_sha=$(git rev-parse 'FETCH_HEAD^{commit}')
+          echo "VERIFIED_TAG_SHA=$tag_sha" >> "$GITHUB_ENV"
           test "$(jq -r .head_sha source-run.json)" = "$tag_sha"
           test "$(jq -r .path source-run.json)" = '.github/workflows/release.yml'
           test "$(jq -r .status source-run.json)" = completed
@@ -66,8 +68,7 @@ jobs:
                   assert not destination.exists(), 'Duplicate artifact: ' + source.name
                   shutil.copyfile(source, destination)
           PY
-          git fetch --no-tags origin "refs/tags/${RELEASE_TAG}"
-          git show FETCH_HEAD:CHANGELOG.md > release-changelog.md
+          git show "${VERIFIED_TAG_SHA}:CHANGELOG.md" > release-changelog.md
           awk -v v="${RELEASE_TAG#v}" '/^## \[/{p=index($0,"[" v "]")>0;next} /^\[[^]]*\]: /{p=0} p' release-changelog.md > notes.md
           test -s notes.md
           (cd dist && sha256sum --check ./*.sha256)
