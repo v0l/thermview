@@ -3,8 +3,8 @@ use egui::{Color32, ColorImage};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
 pub enum Palette {
-    #[default]
     Inferno,
+    #[default]
     Iron,
     Jet,
     Hot,
@@ -83,8 +83,8 @@ const GRAYSCALE: &[Stop] = &[(0.0, [0, 0, 0]), (1.0, [255, 255, 255])];
 
 impl Palette {
     pub const ALL: [Palette; 9] = [
-        Palette::Inferno,
         Palette::Iron,
+        Palette::Inferno,
         Palette::Jet,
         Palette::Hot,
         Palette::Lava,

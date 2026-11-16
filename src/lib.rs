@@ -21,6 +21,7 @@ pub mod raster;
 pub mod startup;
 pub mod timeline;
 pub mod video;
+pub mod view;
 
 pub use formats::parse;
 pub use image::ThermalImage;

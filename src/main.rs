@@ -23,7 +23,7 @@ enum Command {
         file: PathBuf,
         #[arg(short, long)]
         out: Option<PathBuf>,
-        #[arg(long, default_value = "inferno")]
+        #[arg(long, default_value = "iron")]
         palette: String,
         #[arg(long, default_value_t = 3)]
         scale: u32,

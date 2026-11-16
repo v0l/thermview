@@ -1,7 +1,8 @@
 use crate::doc::Doc;
+use crate::overlay::{COLD, HOT};
 use egui::epaint::{Mesh, Vertex, WHITE_UV};
 use egui::{Align2, Color32, Id, Rect, Response, Sense, Stroke, StrokeKind, Ui, pos2, vec2};
-use egui_bench::theme::{ETCH, LEGEND, READOUT, TRACE, figure, legend_font};
+use egui_bench::theme::{ETCH, LEGEND, figure, legend_font};
 
 const LEFT_W: f32 = 52.0;
 const BAR_W: f32 = 18.0;
@@ -112,11 +113,16 @@ pub fn show(ui: &mut Ui, doc: &mut Doc, height: f32) -> Response {
 
     let unit = doc.unit;
     let stats = &doc.image.stats;
-    let edge_label = |c: f32, y: f32, align: Align2| {
-        p.text(pos2(bar.left() - 6.0, y), align, unit.figure(c), figure(11.0), TRACE);
+    let edge_label = |c: f32, y: f32, align: Align2, colour: Color32| {
+        p.text(pos2(bar.left() - 6.0, y), align, unit.figure(c), figure(11.0), colour);
     };
-    edge_label(stats.max.celsius, y_of(stats.max.celsius).max(rect.top()), Align2::RIGHT_TOP);
-    edge_label(stats.min.celsius, y_of(stats.min.celsius).min(rect.bottom()), Align2::RIGHT_BOTTOM);
+    edge_label(stats.max.celsius, y_of(stats.max.celsius).max(rect.top()), Align2::RIGHT_TOP, HOT);
+    edge_label(
+        stats.min.celsius,
+        y_of(stats.min.celsius).min(rect.bottom()),
+        Align2::RIGHT_BOTTOM,
+        COLD,
+    );
 
     let (dlo, dhi) = (unit.from_celsius(lo as f64), unit.from_celsius(hi as f64));
     for t in ticks(dlo, dhi, (height / 48.0) as f64) {
@@ -135,11 +141,12 @@ pub fn show(ui: &mut Ui, doc: &mut Doc, height: f32) -> Response {
 
     let x = bar.right() + TICK_W;
     for (c, y, max) in [(doc.look.max, top, true), (doc.look.min, bottom, false)] {
+        let colour = if max { HOT } else { COLD };
         p.line_segment(
             [pos2(bar.left() - 3.0, y), pos2(bar.right() + 3.0, y)],
-            Stroke::new(1.0, READOUT),
+            Stroke::new(1.0, colour),
         );
-        p.circle_filled(pos2(bar.center().x, y), 5.0, READOUT);
+        p.circle_filled(pos2(bar.center().x, y), 5.0, colour);
         p.circle_stroke(
             pos2(bar.center().x, y),
             5.0,
@@ -150,7 +157,7 @@ pub fn show(ui: &mut Ui, doc: &mut Doc, height: f32) -> Response {
         } else {
             ((y + 2.0).min(rect.bottom() - 14.0), Align2::LEFT_TOP)
         };
-        p.text(pos2(x, y), align, unit.figure(c), figure(14.0), READOUT);
+        p.text(pos2(x, y), align, unit.figure(c), figure(14.0), colour);
     }
     p.text(pos2(x, rect.center().y), Align2::LEFT_CENTER, unit.symbol(), legend_font(12.0), LEGEND);
     resp

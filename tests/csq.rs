@@ -86,7 +86,7 @@ fn compressed_frames_seek_in_both_directions_with_fresh_extremes() {
     assert_eq!(doc.image.stats.max.x, 0);
     assert_eq!(doc.image.stats.min.x, 7);
     assert_eq!(doc.image.stats.min.y, 5);
-    assert_eq!(doc.look.max, doc.image.stats.max.celsius);
+    assert_eq!(doc.look.max, 40.0_f32.max(doc.image.stats.max.celsius));
     assert_ne!(doc.image.celsius, first);
     assert_eq!(doc.reading(&doc.points[0]), doc.image.at(3, 2).unwrap());
     assert_eq!(thermview::export::file_name(&doc), "clip-frame-000002-thermview.png");
@@ -101,6 +101,7 @@ fn compressed_frames_seek_in_both_directions_with_fresh_extremes() {
 fn locked_palette_and_calibration_survive_seeking() {
     let mut doc = Doc::from_video(Video::open(sequence()).unwrap(), "clip.csq", None).unwrap();
     doc.video.as_mut().unwrap().auto_range = false;
+    doc.default_range = false;
     doc.look.min = 0.0;
     doc.look.max = 100.0;
     let mut params = doc.params();
@@ -761,4 +762,116 @@ fn calibration_panel_preserves_stored_zero_distance() {
     let doc = h.app.doc.as_ref().unwrap();
     assert_eq!(doc.params().distance, 0.0);
     assert_eq!(doc.image.celsius, temperatures);
+}
+
+#[test]
+fn image_zoom_and_position_survive_seeking_independently_of_timeline_zoom() {
+    let mut h = zoom_harness();
+    let at = h.thermal_rect().unwrap().center();
+    h.frame(vec![
+        egui::Event::PointerMoved(at),
+        egui::Event::MouseWheel {
+            unit: egui::MouseWheelUnit::Point,
+            delta: egui::vec2(0.0, 400.0),
+            modifiers: egui::Modifiers::CTRL,
+            phase: egui::TouchPhase::Move,
+            source: egui::MouseWheelSource::Unknown,
+        },
+    ]);
+    h.settle();
+    let view = h.app.doc.as_ref().unwrap().view;
+    assert!(view.zoom > 2.0);
+    assert_eq!(h.app.doc.as_ref().unwrap().video.as_ref().unwrap().view.span(), 100);
+    h.app.doc.as_mut().unwrap().seek(10).unwrap();
+    h.settle();
+    assert_eq!(h.app.doc.as_ref().unwrap().view, view);
+    h.click(h.find("+").unwrap().center());
+    assert_eq!(h.app.doc.as_ref().unwrap().video.as_ref().unwrap().view.span(), 50);
+    assert_eq!(h.app.doc.as_ref().unwrap().view, view);
+}
+
+#[test]
+fn default_range_expands_across_video_extremes_and_does_not_contract() {
+    let video = Video::open(
+        [frame(&[16000; 48], true), frame(&[26000; 48], true), frame(&[17000; 48], true)].concat(),
+    )
+    .unwrap();
+    assert!(!video.auto_range);
+    let mut doc = Doc::from_video(video, "extremes.csq", None).unwrap();
+    assert_eq!(doc.look.max, 40.0);
+    doc.seek(1).unwrap();
+    assert!(doc.image.stats.max.celsius > 40.0);
+    assert_eq!(doc.look.max, doc.image.stats.max.celsius);
+    let range = (doc.look.min, doc.look.max);
+    doc.seek(2).unwrap();
+    assert_eq!((doc.look.min, doc.look.max), range);
+    doc.default_range = false;
+    doc.look.min = 10.0;
+    doc.look.max = 20.0;
+    doc.seek(1).unwrap();
+    assert_eq!((doc.look.min, doc.look.max), (10.0, 20.0));
+    doc.video.as_mut().unwrap().auto_range = true;
+    doc.seek(0).unwrap();
+    assert_eq!(
+        (doc.look.min, doc.look.max),
+        (doc.image.stats.min.celsius, doc.image.stats.max.celsius)
+    );
+}
+
+#[test]
+fn playback_skips_consecutive_unreadable_frames_and_stops_at_a_damaged_tail() {
+    let good = frame(&[16000; 48], true);
+    let bad = corrupt_frame(good.clone());
+    let video = Video::open(
+        [good.clone(), bad.clone(), bad.clone(), good.clone(), good.clone(), bad.clone()].concat(),
+    )
+    .unwrap();
+    let mut doc = Doc::from_video(video, "damaged.csq", None).unwrap();
+    doc.video.as_mut().unwrap().playing = true;
+    doc.advance_playback(1);
+    while doc.video.as_ref().unwrap().pending_frame.is_some() {
+        doc.advance_playback(1);
+    }
+    assert_eq!(doc.video.as_ref().unwrap().current, 3);
+    assert!(doc.video.as_ref().unwrap().playing);
+    assert_eq!(
+        doc.video.as_ref().unwrap().playback_failures.iter().map(|f| f.frame).collect::<Vec<_>>(),
+        vec![1, 2]
+    );
+    doc.advance_playback(5);
+    assert!(!doc.video.as_ref().unwrap().playing);
+    assert!(doc.video.as_ref().unwrap().pending_frame.is_none());
+    assert_eq!(doc.video.as_ref().unwrap().current, 3);
+    assert_eq!(doc.video.as_ref().unwrap().playback_failures.len(), 3);
+}
+
+#[test]
+fn playback_ui_carries_on_after_a_decode_error() {
+    let good = frame(&[16000; 48], true);
+    let bad = corrupt_frame(good.clone());
+    let bytes = [good.clone(), bad, good.repeat(20)].concat();
+    let mut h = Harness::new(1500.0, 950.0);
+    h.app.load(
+        &h.ctx.clone(),
+        Ok(Loaded { name: "playback.csq".into(), bytes, modified: None, path: None }),
+    );
+    h.settle();
+    let now = h.ctx.input(|i| i.time);
+    {
+        let video = h.app.doc.as_mut().unwrap().video.as_mut().unwrap();
+        video.playing = true;
+        video.last_tick = Some(now);
+    }
+    h.frame_at(Vec::new(), now + 0.05);
+    let video = h.app.doc.as_ref().unwrap().video.as_ref().unwrap();
+    assert_eq!(video.current, 2);
+    assert!(video.playing);
+    assert!(h.find("1 skipped").is_some());
+    let doc = h.app.doc.as_ref().unwrap();
+    let label = format!(
+        "MIN {}    MAX {}",
+        doc.unit.reading(doc.image.stats.min.celsius),
+        doc.unit.reading(doc.image.stats.max.celsius)
+    );
+    assert_eq!(h.text_colors(&label), vec![thermview::overlay::COLD, thermview::overlay::HOT]);
 }

@@ -1,7 +1,7 @@
 use crate::colorbar;
 use crate::doc::Doc;
 use crate::host::{self, Loaded};
-use crate::overlay::{self, POINT_COLOURS};
+use crate::overlay::{self, COLD, HOT, POINT_COLOURS};
 use crate::palette::{Look, Mapping, Overscan, Palette, Unit};
 use egui::epaint::{Mesh, Vertex, WHITE_UV};
 use egui::{
@@ -558,7 +558,7 @@ impl App {
                     &format!("frame {} · pixel {}, {}", p.frame + 1, p.spot.x, p.spot.y),
                     &unit.figure(p.spot.celsius),
                     unit.symbol(),
-                    READOUT,
+                    HOT,
                 );
                 reading(
                     ui,
@@ -567,7 +567,7 @@ impl App {
                 );
                 ui.horizontal(|ui| {
                     let width = ((ui.available_width() - ui.spacing().item_spacing.x) / 2.0).max(1.0);
-                    let button = |text: &str| egui::Button::new(egui::RichText::new(text).font(figure(10.0)).color(READOUT))
+                    let button = |text: &str| egui::Button::new(egui::RichText::new(text).font(figure(10.0)).color(HOT))
                         .fill(WELL).stroke(Stroke::new(1.0, ETCH));
                     if ui.add_sized(vec2(width, 30.0), button("GO TO HOTTEST"))
                         .on_hover_text("return to the hottest frame and restart the ranked list").clicked() {
@@ -593,9 +593,9 @@ impl App {
                     &format!("frame {} · pixel {}, {}", p.frame + 1, p.spot.x, p.spot.y),
                     &unit.figure(p.spot.celsius),
                     unit.symbol(),
-                    TRACE,
+                    COLD,
                 );
-                if ui.add(Key::new("go to coldest").outline(TRACE)).clicked() {
+                if ui.add(Key::new("go to coldest").outline(COLD)).clicked() {
                     seek = Some(p.frame);
                 }
             });
@@ -734,50 +734,102 @@ impl App {
     fn plate(&mut self, ui: &mut Ui) {
         let Some(tex) = self.texture(ui.ctx()) else { return };
         let Some(doc) = &mut self.doc else { return };
-        let size = overlay::image_rect(Pos2::ZERO, doc).size();
-        egui::ScrollArea::both().auto_shrink([false, false]).show(ui, |ui| {
-            ui.horizontal_top(|ui| {
-                ui.add_space(4.0);
-                colorbar::show(ui, doc, size.y.max(300.0));
-                ui.add_space(8.0);
-                let (rect, resp) = ui.allocate_exact_size(size, Sense::click());
-                let p = ui.painter_at(rect.expand(1.0));
-                p.rect_filled(rect, 0.0, WELL);
-                p.image(
-                    tex,
-                    rect,
-                    Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
-                    Color32::WHITE,
-                );
-                p.rect_stroke(rect, 0.0, Stroke::new(1.0, ETCH), StrokeKind::Outside);
-                overlay::paint(&ui.painter_at(rect), rect, doc);
-
-                let s = doc.scale as f32;
-                let pixel = |at: Pos2| {
-                    let v = (at - rect.min) / s;
-                    let (x, y) = (v.x.floor() as i64, v.y.floor() as i64);
-                    (x >= 0
-                        && y >= 0
-                        && (x as usize) < doc.image.width
-                        && (y as usize) < doc.image.height)
-                        .then_some((x as usize, y as usize))
-                };
-                self.pointer = resp
-                    .hover_pos()
-                    .and_then(pixel)
-                    .map(|(x, y)| (x, y, doc.image.at(x, y).unwrap_or(f32::NAN)));
-                if resp.hovered() {
-                    ui.ctx().set_cursor_icon(egui::CursorIcon::Crosshair);
+        ui.horizontal_wrapped(|ui| {
+            hint(ui, "Ctrl+scroll: zoom · wheel: pan · Shift+wheel: sideways");
+            if ui.add(Key::new("reset view").outline(VALUE)).clicked() {
+                doc.view = Default::default();
+            }
+        });
+        let height = ui.available_height().max(1.0);
+        ui.horizontal_top(|ui| {
+            let bounds = (doc.look.min, doc.look.max);
+            colorbar::show(ui, doc, height);
+            if bounds != (doc.look.min, doc.look.max) {
+                doc.default_range = false;
+                if let Some(video) = &mut doc.video {
+                    video.auto_range = false;
                 }
-                if let (Some(at), Some((_, _, c))) = (resp.hover_pos(), self.pointer) {
-                    tag(&ui.painter_at(rect), rect, at, &doc.unit.reading(c));
+            }
+            ui.add_space(8.0);
+            let (viewport, response) = ui.allocate_exact_size(
+                ui.available_size().max(vec2(1.0, 1.0)),
+                Sense::click_and_drag(),
+            );
+            let image_size = vec2(doc.image.width as f32, doc.image.height as f32);
+            if response.hovered() {
+                let pointer = response.hover_pos().unwrap_or(viewport.center());
+                let events = ui.input(|i| i.events.clone());
+                for event in events {
+                    match event {
+                        egui::Event::MouseWheel { unit, delta, modifiers, .. } => {
+                            let delta = delta
+                                * match unit {
+                                    egui::MouseWheelUnit::Point => 1.0,
+                                    egui::MouseWheelUnit::Line => 40.0,
+                                    egui::MouseWheelUnit::Page => viewport.height(),
+                                };
+                            if modifiers.ctrl || modifiers.command {
+                                doc.view.zoom_at(
+                                    (delta.y * 0.002).clamp(-2.0, 2.0).exp(),
+                                    pointer,
+                                    viewport,
+                                    image_size,
+                                );
+                            } else {
+                                let delta = if modifiers.shift {
+                                    vec2(delta.x + delta.y, 0.0)
+                                } else {
+                                    delta
+                                };
+                                doc.view.pan(delta, viewport, image_size);
+                            }
+                            ui.ctx().request_repaint();
+                        }
+                        egui::Event::Zoom(factor) => {
+                            doc.view.zoom_at(factor, pointer, viewport, image_size);
+                        }
+                        _ => {}
+                    }
                 }
-                if resp.clicked()
-                    && let Some((x, y)) = resp.interact_pointer_pos().and_then(pixel)
-                {
-                    doc.add_point(x, y);
+            }
+            if response.dragged() && doc.view.zoom > 1.0 {
+                doc.view.pan(ui.input(|i| i.pointer.delta()), viewport, image_size);
+            }
+            let rect = doc.view.rect(viewport, image_size);
+            let p = ui.painter_at(viewport);
+            p.rect_filled(viewport, 0.0, WELL);
+            p.image(tex, rect, Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
+            p.rect_stroke(rect, 0.0, Stroke::new(1.0, ETCH), StrokeKind::Inside);
+            overlay::paint(&p, rect, doc);
+            let scale = rect.width() / doc.image.width as f32;
+            let pixel = |at: Pos2| {
+                if !rect.contains(at) || !viewport.contains(at) {
+                    return None;
                 }
-            });
+                let v = (at - rect.min) / scale;
+                let x = v.x.floor() as usize;
+                let y = v.y.floor() as usize;
+                (x < doc.image.width && y < doc.image.height).then_some((x, y))
+            };
+            self.pointer = response
+                .hover_pos()
+                .and_then(pixel)
+                .map(|(x, y)| (x, y, doc.image.at(x, y).unwrap_or(f32::NAN)));
+            if response.hovered() {
+                ui.ctx().set_cursor_icon(if doc.view.zoom > 1.0 {
+                    egui::CursorIcon::Grab
+                } else {
+                    egui::CursorIcon::Crosshair
+                });
+            }
+            if let (Some(at), Some((_, _, c))) = (response.hover_pos(), self.pointer) {
+                tag(&p, viewport, at, &doc.unit.reading(c));
+            }
+            if response.clicked()
+                && let Some((x, y)) = response.interact_pointer_pos().and_then(pixel)
+            {
+                doc.add_point(x, y);
+            }
         });
     }
 
@@ -786,17 +838,15 @@ impl App {
         let Some(video) = &mut doc.video else { return };
         let now = ctx.input(|i| i.time);
         let keyboard = !ctx.egui_wants_keyboard_input();
+        let mut target = video.current;
         if keyboard && ctx.input(|i| i.key_pressed(egui::Key::Space)) {
             video.playing = !video.playing;
+            video.pending_frame = None;
             video.last_tick = Some(now);
             if video.playing && video.current + 1 == video.len() {
-                if let Err(e) = doc.seek(0) {
-                    self.fail(e.to_string());
-                }
-                return;
+                target = 0;
             }
         }
-        let mut target = video.current;
         if keyboard {
             if ctx.input(|i| i.key_pressed(egui::Key::ArrowLeft)) {
                 target = target.saturating_sub(1);
@@ -820,19 +870,20 @@ impl App {
             let last = video.last_tick.get_or_insert(now);
             let steps = ((now - *last) * video.fps).floor().max(0.0) as usize;
             if steps > 0 {
-                target = (target.saturating_add(steps)).min(last_frame);
+                target = target.saturating_add(steps).min(last_frame);
                 *last += steps as f64 / video.fps;
             }
-            if target + 1 == video.len() {
-                video.playing = false;
-            }
             ctx.request_repaint_after(std::time::Duration::from_secs_f64(1.0 / video.fps));
+            doc.advance_playback(target);
+            if doc.video.as_ref().unwrap().pending_frame.is_some() {
+                ctx.request_repaint();
+            }
         } else {
             video.last_tick = None;
-        }
-        if let Err(e) = doc.seek(target) {
-            doc.video.as_mut().unwrap().playing = false;
-            self.fail(e.to_string());
+            video.pending_frame = None;
+            if let Err(e) = doc.seek(target) {
+                self.fail(e.to_string());
+            }
         }
     }
 
@@ -840,6 +891,7 @@ impl App {
         let Some(doc) = &mut self.doc else { return };
         let Some(video) = &mut doc.video else { return };
         let mut target = video.current;
+        let mut refresh_range = false;
         ui.horizontal(|ui| {
             if ui.add(Key::new("|<").outline(VALUE)).on_hover_text("first frame · Home").clicked()
             {
@@ -857,6 +909,7 @@ impl App {
                 .clicked()
             {
                 video.playing = !video.playing;
+                video.pending_frame = None;
                 video.last_tick = Some(ui.input(|i| i.time));
                 if video.playing && target + 1 == video.len() {
                     target = 0;
@@ -876,20 +929,38 @@ impl App {
                     .font(figure(12.0))
                     .color(VALUE),
             );
-            ui.label(
-                egui::RichText::new(format!(
-                    "MIN {}    MAX {}",
-                    doc.unit.reading(doc.image.stats.min.celsius),
-                    doc.unit.reading(doc.image.stats.max.celsius)
-                ))
-                .font(figure(12.0))
-                .color(TRACE),
-            );
+            let mut extrema = egui::text::LayoutJob::default();
+            for (text, colour) in [
+                (format!("MIN {}", doc.unit.reading(doc.image.stats.min.celsius)), COLD),
+                (format!("    MAX {}", doc.unit.reading(doc.image.stats.max.celsius)), HOT),
+            ] {
+                extrema.append(
+                    &text,
+                    0.0,
+                    egui::TextFormat { font_id: figure(12.0), color: colour, ..Default::default() },
+                );
+            }
+            ui.label(extrema);
+            if !video.playback_failures.is_empty() {
+                ui.label(
+                    egui::RichText::new(format!("{} skipped", video.playback_failures.len()))
+                        .color(LEGEND),
+                )
+                .on_hover_text(
+                    video
+                        .playback_failures
+                        .iter()
+                        .map(|f| format!("Frame {}: {}", f.frame + 1, f.error))
+                        .collect::<Vec<_>>()
+                        .join("\n"),
+                );
+            }
             if toggle(ui, "auto range", video.auto_range)
                 .on_hover_text("fit the palette to each frame")
                 .clicked()
             {
                 video.auto_range = !video.auto_range;
+                refresh_range = video.auto_range;
             }
             ui.add(
                 egui::DragValue::new(&mut video.fps).range(1.0..=1000.0).speed(1.0).suffix(" fps"),
@@ -931,8 +1002,17 @@ impl App {
             target = frame;
             video.playing = false;
         }
-        if let Err(e) = doc.seek(target) {
-            self.fail(e.to_string());
+        if refresh_range {
+            doc.auto_range();
+        }
+        let playing = doc.video.as_ref().unwrap().playing;
+        if playing && target != doc.video.as_ref().unwrap().current {
+            doc.advance_playback(target);
+        } else if !playing {
+            doc.video.as_mut().unwrap().pending_frame = None;
+            if let Err(e) = doc.seek(target) {
+                self.fail(e.to_string());
+            }
         }
     }
 
@@ -1055,20 +1135,21 @@ fn degrees(ui: &mut Ui, unit: Unit, c: &mut f32) -> bool {
 }
 
 fn range(ui: &mut Ui, doc: &mut Doc) {
+    let before = (doc.look.min, doc.look.max);
     let unit = doc.unit;
     let stats = &doc.image.stats;
     readouts(
         ui,
         &[
-            ("window low", unit.figure(doc.look.min), READOUT),
-            ("window high", unit.figure(doc.look.max), READOUT),
+            ("window low", unit.figure(doc.look.min), COLD),
+            ("window high", unit.figure(doc.look.max), HOT),
         ],
     );
     readouts(
         ui,
         &[
-            ("coldest", unit.figure(stats.min.celsius), TRACE),
-            ("hottest", unit.figure(stats.max.celsius), TRACE),
+            ("coldest", unit.figure(stats.min.celsius), COLD),
+            ("hottest", unit.figure(stats.max.celsius), HOT),
         ],
     );
     ui.horizontal(|ui| {
@@ -1097,6 +1178,12 @@ fn range(ui: &mut Ui, doc: &mut Doc) {
             }
         }
     });
+    if before != (doc.look.min, doc.look.max) {
+        doc.default_range = false;
+        if let Some(video) = &mut doc.video {
+            video.auto_range = false;
+        }
+    }
 }
 
 fn display(ui: &mut Ui, doc: &mut Doc) {
@@ -1104,10 +1191,6 @@ fn display(ui: &mut Ui, doc: &mut Doc) {
     ui.push_id("unit", |ui| {
         tabs(ui, &mut doc.unit, &[(Unit::Celsius, "°C"), (Unit::Fahrenheit, "°F")])
     });
-    Line::new().legend("scale").show(ui);
-    let names: Vec<(u32, String)> = (1..=6).map(|s| (s, format!("{s}x"))).collect();
-    let opts: Vec<(u32, &str)> = names.iter().map(|(s, n)| (*s, n.as_str())).collect();
-    ui.push_id("scale", |ui| tabs(ui, &mut doc.scale, &opts));
     row(ui, "labels", |ui| {
         ui.add(egui::Slider::new(&mut doc.label_size, 5.0..=30.0).step_by(1.0));
     });

@@ -14,6 +14,8 @@ pub struct Video {
     pub playing: bool,
     pub auto_range: bool,
     pub last_tick: Option<f64>,
+    pub pending_frame: Option<usize>,
+    pub playback_failures: Vec<crate::measure::FrameFailure>,
     pub view: crate::timeline::TimelineView,
 }
 
@@ -59,8 +61,10 @@ impl Video {
             estimated_fps: fps.is_none(),
             current: 0,
             playing: false,
-            auto_range: true,
+            auto_range: false,
             last_tick: None,
+            pending_frame: None,
+            playback_failures: Vec::new(),
         })
     }
 

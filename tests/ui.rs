@@ -63,7 +63,7 @@ fn dragging_the_top_handle_lowers_the_window() {
     h.drag(pos2(bar_x, top), pos2(bar_x, top + 150.0));
     let look = h.app.doc.as_ref().unwrap().look;
     assert!(look.max < before - 5.0, "max stayed at {}", look.max);
-    assert!((look.min - 20.0).abs() < 0.2, "min moved to {}", look.min);
+    assert!((look.min - 5.0).abs() < 0.2, "min moved to {}", look.min);
     save(&h, "drag.png");
 }
 
@@ -222,4 +222,66 @@ fn native_file_and_folder_choices_load_without_a_custom_modal() {
     assert_eq!(h.app.explorer.root, dir.join("subfolder").canonicalize().unwrap());
     assert_eq!(h.app.doc.as_ref().unwrap().image.celsius, image);
     let _ = std::fs::remove_dir_all(dir);
+}
+
+fn wheel(at: egui::Pos2, delta: egui::Vec2, modifiers: egui::Modifiers) -> Vec<egui::Event> {
+    vec![
+        egui::Event::PointerMoved(at),
+        egui::Event::MouseWheel {
+            unit: egui::MouseWheelUnit::Point,
+            delta,
+            modifiers,
+            phase: egui::TouchPhase::Move,
+            source: egui::MouseWheelSource::Unknown,
+        },
+    ]
+}
+
+#[test]
+fn ctrl_wheel_zooms_the_image_and_plain_wheel_pans_without_changing_export_scale() {
+    let mut h = harness();
+    let viewport = h.thermal_rect().unwrap();
+    let at = viewport.center();
+    let export_scale = h.app.doc.as_ref().unwrap().scale;
+    let app_zoom = h.ctx.zoom_factor();
+    h.frame(wheel(at, egui::vec2(0.0, 400.0), egui::Modifiers::CTRL));
+    h.settle();
+    let view = h.app.doc.as_ref().unwrap().view;
+    assert!(view.zoom > 2.0);
+    assert_eq!(h.ctx.zoom_factor(), app_zoom, "image zoom must not zoom the interface");
+    assert_eq!(h.app.doc.as_ref().unwrap().scale, export_scale);
+    h.frame(wheel(at, egui::vec2(0.0, -100.0), egui::Modifiers::NONE));
+    let panned = h.app.doc.as_ref().unwrap().view;
+    assert_eq!(panned.zoom, view.zoom);
+    assert!(panned.center.y > view.center.y);
+    h.frame(wheel(at, egui::vec2(0.0, -100.0), egui::Modifiers::SHIFT));
+    assert!(h.app.doc.as_ref().unwrap().view.center.x > panned.center.x);
+    h.click(h.find("RESET VIEW").unwrap().center());
+    assert_eq!(h.app.doc.as_ref().unwrap().view, thermview::view::ImageView::default());
+    assert!(h.find("1X").is_none() && h.find("6X").is_none());
+    assert!(h.find("IRON").unwrap().top() < h.find("INFERNO").unwrap().top());
+    save(&h, "v021-default-view.png");
+}
+
+#[test]
+fn clicking_a_zoomed_pixel_reads_that_pixel_and_hot_labels_are_red() {
+    let mut h = harness();
+    let at = h.thermal_rect().unwrap().center();
+    h.frame(wheel(at, egui::vec2(0.0, 400.0), egui::Modifiers::CTRL));
+    h.settle();
+    let rect = h.thermal_rect().unwrap();
+    // The image centre is the source centre despite zoom and clipping.
+    h.click(at);
+    let doc = h.app.doc.as_ref().unwrap();
+    let point = doc.points.last().unwrap();
+    let expected_x =
+        ((at.x - rect.left()) / rect.width() * doc.image.width as f32).floor() as usize;
+    let expected_y =
+        ((at.y - rect.top()) / rect.height() * doc.image.height as f32).floor() as usize;
+    assert_eq!((point.x, point.y), (expected_x, expected_y));
+    assert_eq!(doc.reading(point), doc.image.at(expected_x, expected_y).unwrap());
+    h.click(h.find("RESET VIEW").unwrap().center());
+    assert!(h.text_colors("50.0").contains(&thermview::overlay::HOT));
+    assert!(h.text_colors("20.0").contains(&thermview::overlay::COLD));
+    save(&h, "v021-hot-cold.png");
 }

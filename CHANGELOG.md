@@ -6,6 +6,16 @@ All notable changes to thermview are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-16
+
+### Changed
+- Replace image scale buttons with cursor-centred Ctrl+scroll image zoom, wheel/trackpad panning, Shift+wheel horizontal panning, drag panning and Reset view. Preserve the image region across video frames independently of timeline zoom; image exports retain their full-frame resolution.
+- Default to Iron, listed before Inferno, and a 5–40°C colour range with video autorange off. The default range expands for newly encountered extrema without shrinking again; deliberate manual range edits stay fixed.
+- Use red for hottest/high readouts and blue for coldest/low readouts, including the colour bar and video/measurement summaries.
+
+### Fixed
+- Video playback skips unreadable frames and continues, recording skipped frame numbers/errors. Long runs of bad frames are processed in bounded batches, and playback stops safely at an unreadable tail.
+
 ## [0.2.0] - 2026-11-15
 
 ### Fixed
