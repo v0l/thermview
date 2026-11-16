@@ -285,3 +285,49 @@ fn clicking_a_zoomed_pixel_reads_that_pixel_and_hot_labels_are_red() {
     assert!(h.text_colors("20.0").contains(&thermview::overlay::COLD));
     save(&h, "v021-hot-cold.png");
 }
+
+#[test]
+fn next_hottest_spot_reaches_the_eye_in_the_same_frame_and_exports_a_selected_spot_marker() {
+    use thermview::doc::Doc;
+    use thermview::image::{Format, ThermalImage};
+    let mut values = vec![20.0; 80 * 60];
+    for y in 15..20 {
+        for x in 15..20 {
+            values[y * 80 + x] = 38.0;
+        }
+    }
+    values[30 * 80 + 50] = 37.8;
+    let image = ThermalImage::new(Format::Hikmicro, 80, 60, values);
+    let mut h = Harness::new(1500.0, 1100.0);
+    h.app.doc = Some(Doc::new(image, "ear-and-eye.jpg", None));
+    h.settle();
+    let original = h.app.doc.as_ref().unwrap().image.celsius.clone();
+    h.click(h.find("NEXT HOTTEST SPOT").unwrap().center());
+    let doc = h.app.doc.as_ref().unwrap();
+    let selected = doc.hotspots.selected(&doc.image).unwrap();
+    assert_eq!((selected.x, selected.y, selected.celsius), (50, 30, 37.8));
+    assert_eq!(doc.hotspots.rank(), 1);
+    assert_eq!(doc.image.stats.max.celsius, 38.0);
+    assert_eq!(doc.image.celsius, original);
+    assert!(h.find("SPOT 2: 37.8°C").is_some());
+    assert!(h.find("MAX: 38.0°C").is_none(), "selected spot must not be mislabelled MAX");
+    assert!(h.find("PIXEL 50, 30 · SPOT 2").is_some());
+    let marked = thermview::export::png(doc);
+    save(&h, "v021-eye-hotspot.png");
+    h.click(h.find("RESET TO HOTTEST").unwrap().center());
+    let doc = h.app.doc.as_ref().unwrap();
+    assert_eq!(doc.hotspots.rank(), 0);
+    assert!(h.find("MAX: 38.0°C").is_some());
+    assert_ne!(thermview::export::png(doc), marked);
+    assert_eq!(doc.image.celsius, original);
+    let point = h.thermal_rect().unwrap().center();
+    h.frame(wheel(point, egui::vec2(0.0, 300.0), egui::Modifiers::CTRL));
+    h.click(h.find("NEXT HOTTEST SPOT").unwrap().center());
+    h.click(h.find("LOOK").unwrap().center());
+    h.click(h.find("JET").unwrap().center());
+    assert_eq!(
+        h.app.doc.as_ref().unwrap().hotspots.rank(),
+        1,
+        "view/display changes must preserve selected spot"
+    );
+}

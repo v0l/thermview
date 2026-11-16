@@ -36,6 +36,7 @@ pub struct Doc {
     pub label_size: f32,
     pub overlays: Overlays,
     pub points: Vec<Point>,
+    pub hotspots: crate::hotspots::Hotspots,
     pub revision: u64,
     pub measurement: crate::measure::Measurement,
     pub video: Option<crate::video::Video>,
@@ -66,6 +67,7 @@ impl Doc {
             label_size: 10.0,
             overlays: Overlays::default(),
             points: Vec::new(),
+            hotspots: crate::hotspots::Hotspots::default(),
             revision: 0,
             measurement: crate::measure::Measurement::default(),
             video: None,
@@ -93,6 +95,7 @@ impl Doc {
         let adjusted = params != self.source.params;
         self.image = if adjusted { source.recompute(params) } else { source.clone() };
         self.source = source;
+        self.hotspots.invalidate();
         self.points.retain(|p| p.x < self.image.width && p.y < self.image.height);
         let auto_range = video.auto_range;
         let video = self.video.as_mut().unwrap();
@@ -107,6 +110,44 @@ impl Doc {
         Ok(())
     }
 
+    fn pause_for_hotspot(&mut self) {
+        if let Some(video) = &mut self.video {
+            video.playing = false;
+            video.pending_frame = None;
+            video.last_tick = None;
+        }
+        self.overlays.extremes = true;
+    }
+
+    fn focus_hotspot(&mut self) {
+        if self.view.zoom > 1.0
+            && let Some(p) = self.hotspots.selected(&self.image)
+        {
+            self.view.center = egui::vec2(
+                (p.x as f32 + 0.5) / self.image.width as f32,
+                (p.y as f32 + 0.5) / self.image.height as f32,
+            );
+        }
+    }
+
+    pub fn next_hotspot(&mut self) {
+        self.pause_for_hotspot();
+        self.hotspots.next(&self.image);
+        self.focus_hotspot();
+    }
+
+    pub fn reset_hotspot(&mut self) {
+        self.pause_for_hotspot();
+        self.hotspots.reset();
+        self.focus_hotspot();
+    }
+
+    pub fn set_hotspot_spacing(&mut self, pixels: usize) {
+        self.pause_for_hotspot();
+        self.hotspots.set_spacing(pixels);
+        self.focus_hotspot();
+    }
+
     pub fn params(&self) -> Params {
         self.image.params
     }
@@ -115,6 +156,7 @@ impl Doc {
         if params != self.image.params && self.image.recomputable() {
             self.measurement.invalidate();
             self.image = self.source.recompute(params);
+            self.hotspots.invalidate();
             self.expand_default_range();
             self.revision += 1;
         }

@@ -259,11 +259,42 @@ Palette, units and measurement points persist while scrubbing. Export saves the 
 
 Frames are indexed once and decoded on demand. The encoded file stays in memory, but decoded rasters are only retained for the current frame. The playback rate comes from camera metadata when available; otherwise it defaults to an editable 30 fps. The ruler uses frame numbers so it remains precise when recording timing is unavailable. Compressed JPEG-LS CSQ decoding uses bundled [CharLS](https://github.com/team-charls/charls) on desktop; it is currently unavailable in the WebAssembly build. No FFmpeg or FLIR software is required.
 
+### Browse hot spots within the current frame
+
+Use **Next hottest spot** in the right-hand **Frame hot spots** panel to inspect
+another hot area without leaving the current frame. For example, a frame whose
+maximum is an ear at 38°C can also contain an eye peak at 37.8°C. This control
+lets you inspect that second peak before moving to another video frame.
+
+Browsing pauses playback and shows the selected temperature, zero-based pixel
+coordinates and spot rank. The selected peak gets a red **SPOT 2**, **SPOT 3**,
+etc. marker in the viewer and image exports. **Reset to hottest** returns to the
+frame's actual maximum and its **MAX** marker. The frame's true min/max, colour
+bar and range-measurement statistics remain unchanged.
+
+Candidates are local temperature maxima. Connected pixels with the same peak
+temperature form one plateau, represented by its first pixel in row order.
+**Spot spacing** (default **5 sensor pixels**) suppresses nearby lower-ranked
+peaks. Reduce it for closely spaced features, or increase it to skip more of a
+large hot area. Tied peaks use top-to-bottom, left-to-right order. Invalid pixels
+are excluded, and the button stops at the last candidate rather than wrapping.
+
+This is manual inspection, not automatic identification of eyes or ears. Spacing
+can hide nearby features, and local-peak browsing does not guarantee the highest
+eye temperature across a video. Click the image to measure any particular pixel
+when a feature does not appear in the candidate list.
+
+Changing frames, opening another file, recalibrating, or changing spacing resets
+browsing to the hottest spot. Palette, temperature units, colour window and zoom
+changes preserve the selection. A zoomed view recentres on the selected spot.
+Video **Measure → Next hottest** remains a separate control which ranks frames
+by their maximum temperature.
+
 ### Measure a video range
 
 Select **Measure** in the left activity bar. Scrub to the first frame and press **I** (or **Mark start**), then scrub to the last frame and press **O** (or **Mark end**). Both endpoints are included, and I/O marks appear on the timeline. Marking pauses playback. Press **Analyse range** to process every selected frame; progress and **Cancel** remain available while you use the viewer.
 
-Results show the hottest and coldest temperatures with their frame numbers and zero-based pixel locations, plus **Average max** (the mean of each frame's hottest reading), **Average min** (the mean of each frame's coldest reading), and **Overall mean** (all valid pixel temperatures across all selected frames, weighted equally per pixel). **Go to hottest/coldest** opens the corresponding frame. **Next hottest**, beside **Go to hottest**, steps through distinct frames ranked by each frame's maximum temperature, highest first. Equal maxima use chronological frame order. The hottest card shows the selected candidate's temperature, pixel location, frame and rank. The button stops at the last candidate; **Go to hottest** returns to rank 1 and restarts browsing. Range-wide extrema and averages remain unchanged. Changing the range, recalibrating, or running a new analysis resets candidate browsing. A single-frame range is valid. The time span is the first-to-last frame interval using the current playback frame rate.
+Results show the hottest and coldest temperatures with their frame numbers and zero-based pixel locations, plus **Average max** (the mean of each frame's hottest reading), **Average min** (the mean of each frame's coldest reading), and **Overall mean** (all valid pixel temperatures across all selected frames, weighted equally per pixel). **Go to hottest/coldest** opens the corresponding frame. **Next hottest** steps through distinct frames ranked by each frame's maximum temperature, highest first. **Previous hottest**, beside it, goes back one rank so you can recover after stepping too far. Equal maxima use chronological frame order. The hottest card shows the selected candidate's temperature, pixel location, frame and rank. Next stops at the last candidate and Previous stops at rank 1; neither wraps. **Go to hottest** returns directly to rank 1 and restarts browsing. Previous/Next follow temperature rank, not chronological frame order. Range-wide extrema and averages remain unchanged. Changing the range, recalibrating, or running a new analysis resets candidate browsing. A single-frame range is valid. The time span is the first-to-last frame interval using the current playback frame rate.
 
 Analysis uses each frame's recorded calibration, or your current edited calibration when recalibrated. Changing calibration or either mark clears old results; changing the palette or display unit does not. Invalid temperatures are excluded. Unreadable frames and frames with no valid readings are skipped, and analysis continues through the selected range. The result shows successfully analysed frames versus selected frames. When frames were skipped, a partial-coverage notice makes clear that extrema, averages and ranked candidates describe the readable frames only; the temperatures of skipped frames remain unknown. The **Failures** box at the bottom of Measure lists the skipped frame numbers and errors (hover a row for the full message). If every selected frame fails, no temperature summary is produced. Failure details are cleared with a new analysis, changed marks, recalibration or Reset. **Reset** clears marks and results. I/O shortcuts are ignored while editing text or numeric fields.
 

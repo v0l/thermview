@@ -8,6 +8,10 @@ All notable changes to thermview are listed here. The format follows
 
 ## [0.2.1] - 2026-11-16
 
+### Added
+- Previous hottest steps back one rank in Measure's hottest-frame list without restarting; previous/next controls stop at the list boundaries and preserve range statistics.
+- Current-frame Next hottest spot and Reset to hottest controls with selected temperature, pixel coordinates and an explicit spot marker in the viewer/exports. Plateau grouping and adjustable sensor-pixel spacing browse separated local peaks; browsing pauses playback and leaves true frame/range extrema unchanged.
+
 ### Changed
 - Replace image scale buttons with cursor-centred Ctrl+scroll image zoom, wheel/trackpad panning, Shift+wheel horizontal panning, drag panning and Reset view. Preserve the image region across video frames independently of timeline zoom; image exports retain their full-frame resolution.
 - Default to Iron, listed before Inferno, and a 5–40°C colour range with video autorange off. The default range expands for newly encountered extrema without shrinking again; deliberate manual range edits stay fixed.

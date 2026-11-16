@@ -565,20 +565,34 @@ impl App {
                     "candidate",
                     format!("{} of {}", rank + 1, result.hottest_frames.len()),
                 );
+                let button = |text: &str| {
+                    egui::Button::new(egui::RichText::new(text).font(figure(10.0)).color(HOT))
+                        .fill(WELL)
+                        .stroke(Stroke::new(1.0, ETCH))
+                };
+                if ui
+                    .add_sized(vec2(ui.available_width(), 30.0), button("GO TO HOTTEST"))
+                    .on_hover_text("return to the hottest frame and restart the ranked list")
+                    .clicked()
+                {
+                    rank = 0;
+                    seek = Some(result.hottest.frame);
+                }
                 ui.horizontal(|ui| {
                     let width = ((ui.available_width() - ui.spacing().item_spacing.x) / 2.0).max(1.0);
-                    let button = |text: &str| egui::Button::new(egui::RichText::new(text).font(figure(10.0)).color(HOT))
-                        .fill(WELL).stroke(Stroke::new(1.0, ETCH));
-                    if ui.add_sized(vec2(width, 30.0), button("GO TO HOTTEST"))
-                        .on_hover_text("return to the hottest frame and restart the ranked list").clicked() {
-                        rank = 0;
-                        seek = Some(result.hottest.frame);
+                    let has_previous = rank > 0;
+                    let previous = ui.add_enabled_ui(has_previous, |ui| ui.add_sized(vec2(width, 30.0), button("PREVIOUS HOTTEST"))).inner;
+                    if previous.on_hover_text(if has_previous {
+                        "go back one rank in the hottest-frame list"
+                    } else { "already at the hottest-ranked frame" }).clicked() && has_previous {
+                        rank -= 1;
+                        seek = Some(result.hottest_frames[rank].frame);
                     }
                     let has_next = rank + 1 < result.hottest_frames.len();
                     let next = ui.add_enabled_ui(has_next, |ui| ui.add_sized(vec2(width, 30.0), button("NEXT HOTTEST"))).inner;
                     if next.on_hover_text(if has_next {
                         "go to the next frame ranked by its maximum temperature; ties use frame order"
-                    } else { "no more frames in this range; Go to hottest restarts the list" }).clicked() && has_next {
+                    } else { "last ranked frame; use Previous hottest to go back" }).clicked() && has_next {
                         rank += 1;
                         seek = Some(result.hottest_frames[rank].frame);
                     }
@@ -702,6 +716,61 @@ impl App {
         );
         ui.add_space(8.0);
         section(ui, "points", "click the image to add one", |ui| points(ui, doc));
+        ui.add_space(8.0);
+        section(ui, "frame hot spots", "current frame only", |ui| {
+            if let Some(p) = doc.hotspots.selected(&doc.image) {
+                hero(
+                    ui,
+                    &format!("pixel {}, {} · spot {}", p.x, p.y, doc.hotspots.rank() + 1),
+                    &doc.unit.figure(p.celsius),
+                    doc.unit.symbol(),
+                    HOT,
+                );
+                if let Some(count) = doc.hotspots.count() {
+                    reading(ui, "spot", format!("{} of {}", doc.hotspots.rank() + 1, count));
+                }
+                if ui
+                    .add_enabled(
+                        doc.hotspots.has_next(),
+                        Key::new("next hottest spot").outline(HOT),
+                    )
+                    .on_hover_text(
+                        "pause playback and move to the next separated local peak in this frame",
+                    )
+                    .clicked()
+                {
+                    doc.next_hotspot();
+                }
+                if ui
+                    .add_enabled(
+                        doc.hotspots.rank() > 0,
+                        Key::new("reset to hottest").outline(VALUE),
+                    )
+                    .clicked()
+                {
+                    doc.reset_hotspot();
+                }
+                let mut spacing = doc.hotspots.spacing();
+                ui.horizontal(|ui| {
+                    ui.label("Spot spacing");
+                    if ui
+                        .add(egui::DragValue::new(&mut spacing).range(1..=100).suffix(" px"))
+                        .changed()
+                    {
+                        doc.set_hotspot_spacing(spacing);
+                    }
+                });
+                hint(
+                    ui,
+                    "Distinct local peaks, not eye/ear detection. Reduce spacing for nearby features; increase it to skip more of a large hot area.",
+                );
+                if !doc.hotspots.has_next() {
+                    hint(ui, "No further distinct hot spots at this spacing.");
+                }
+            } else {
+                hint(ui, "No valid temperature readings in this frame.");
+            }
+        });
         ui.add_space(8.0);
         if doc.image.recomputable() {
             section(ui, "calibration", "recomputes every pixel", |ui| calibration(ui, doc));

@@ -47,7 +47,21 @@ pub fn paint(p: &Painter, rect: Rect, doc: &Doc) {
         if (lo.x, lo.y) != (hi.x, hi.y) {
             extreme(p, rect, centre(lo.x, lo.y), lo, false, doc.unit, fs);
         }
-        extreme(p, rect, centre(hi.x, hi.y), hi, true, doc.unit, fs);
+        if doc.hotspots.rank() == 0 {
+            extreme(p, rect, centre(hi.x, hi.y), hi, true, doc.unit, fs);
+        } else if let Some(spot) = doc.hotspots.selected(img) {
+            let c = centre(spot.x, spot.y);
+            let arm = crosshair(p, c, HOT, fs, factor);
+            label(
+                p,
+                rect,
+                c,
+                &format!("SPOT {}: {}", doc.hotspots.rank() + 1, doc.unit.reading(spot.celsius)),
+                HOT,
+                fs,
+                arm,
+            );
+        }
     }
 
     if doc.overlays.info {

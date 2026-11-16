@@ -471,6 +471,17 @@ fn measure_activity_marks_and_reports_the_selected_video_range() {
     assert_eq!(result.frames, 11);
     assert_eq!(result.hottest.frame, 10);
     assert!(h.find("HOTTEST").is_some());
+    h.frame(vec![
+        egui::Event::PointerMoved(egui::pos2(200.0, 600.0)),
+        egui::Event::MouseWheel {
+            unit: egui::MouseWheelUnit::Point,
+            delta: egui::vec2(0.0, -100.0),
+            modifiers: egui::Modifiers::NONE,
+            phase: egui::TouchPhase::Move,
+            source: egui::MouseWheelSource::Unknown,
+        },
+    ]);
+    h.settle();
     assert!(h.find("AVERAGE MAX").is_some());
     h.click(h.find("GO TO COLDEST").unwrap().center());
     assert_eq!(h.app.doc.as_ref().unwrap().video.as_ref().unwrap().current, 0);
@@ -480,6 +491,17 @@ fn measure_activity_marks_and_reports_the_selected_video_range() {
         h.png(),
     )
     .unwrap();
+    h.frame(vec![
+        egui::Event::PointerMoved(egui::pos2(200.0, 600.0)),
+        egui::Event::MouseWheel {
+            unit: egui::MouseWheelUnit::Point,
+            delta: egui::vec2(0.0, 300.0),
+            modifiers: egui::Modifiers::NONE,
+            phase: egui::TouchPhase::Move,
+            source: egui::MouseWheelSource::Unknown,
+        },
+    ]);
+    h.settle();
     h.click(h.find("RESET").unwrap().center());
     assert_eq!(
         (
@@ -622,8 +644,13 @@ fn next_hottest_visits_each_ranked_frame_and_go_to_hottest_restarts() {
     }
     let go = h.find("GO TO HOTTEST").unwrap();
     let next = h.find("NEXT HOTTEST").unwrap();
-    assert!((go.center().y - next.center().y).abs() < 1.0, "buttons must sit side by side");
-    assert!(next.left() > go.right());
+    let previous = h.find("PREVIOUS HOTTEST").unwrap();
+    assert!(
+        (previous.center().y - next.center().y).abs() < 1.0,
+        "back/forward buttons must sit side by side"
+    );
+    assert!(next.left() > previous.right());
+    assert!(go.bottom() < previous.top());
     h.click(go.center());
     assert_eq!(h.app.doc.as_ref().unwrap().video.as_ref().unwrap().current, 10);
     for expected in (0..10).rev() {
@@ -874,4 +901,86 @@ fn playback_ui_carries_on_after_a_decode_error() {
         doc.unit.reading(doc.image.stats.max.celsius)
     );
     assert_eq!(h.text_colors(&label), vec![thermview::overlay::COLD, thermview::overlay::HOT]);
+}
+
+#[test]
+fn hot_spot_browsing_pauses_without_seeking_and_resets_when_temperatures_change() {
+    let mut values = vec![14000; 48];
+    values[1] = 18000;
+    values[46] = 17700;
+    let video = Video::open([frame(&values, true), frame(&values, false)].concat()).unwrap();
+    let mut doc = Doc::from_video(video, "spots.csq", None).unwrap();
+    doc.measurement.mark_start(0);
+    doc.measurement.mark_end(1);
+    doc.measurement.begin(2, None);
+    while doc.measurement.running() {
+        doc.measurement.advance(doc.video.as_ref().unwrap());
+    }
+    let maximum = doc.measurement.result.as_ref().unwrap().hottest.spot.celsius;
+    doc.video.as_mut().unwrap().playing = true;
+    doc.next_hotspot();
+    assert!(!doc.video.as_ref().unwrap().playing);
+    assert_eq!(doc.video.as_ref().unwrap().current, 0);
+    assert_eq!(doc.hotspots.rank(), 1);
+    assert_eq!(doc.hotspots.selected(&doc.image).unwrap().x, 6);
+    assert_eq!(doc.measurement.result.as_ref().unwrap().hottest.spot.celsius, maximum);
+    doc.seek(1).unwrap();
+    assert_eq!(doc.hotspots.rank(), 0);
+    assert_eq!(doc.hotspots.count(), None);
+    assert_eq!(doc.hotspots.selected(&doc.image).unwrap(), doc.image.stats.max);
+    doc.next_hotspot();
+    assert_eq!(doc.hotspots.rank(), 1);
+    let mut params = doc.params();
+    params.emissivity = 0.8;
+    doc.set_params(params);
+    assert_eq!(doc.hotspots.rank(), 0);
+    assert_eq!(doc.hotspots.count(), None);
+    doc.next_hotspot();
+    doc.set_hotspot_spacing(8);
+    assert_eq!(doc.hotspots.rank(), 0);
+    assert_eq!(doc.hotspots.spacing(), 8);
+    doc.seek(0).unwrap();
+    assert_eq!(doc.hotspots.spacing(), 8, "spacing should persist between frames");
+}
+
+#[test]
+fn previous_hottest_recovers_after_twenty_one_steps_without_restarting_or_changing_results() {
+    let mut h = zoom_harness();
+    h.click(h.find("MEASURE").unwrap().center());
+    h.click(h.find("MARK START").unwrap().center());
+    h.app.doc.as_mut().unwrap().seek(30).unwrap();
+    h.settle();
+    h.click(h.find("MARK END").unwrap().center());
+    h.click(h.find("ANALYSE RANGE").unwrap().center());
+    for _ in 0..35 {
+        h.frame(Vec::new());
+    }
+    h.click(h.find("GO TO HOTTEST").unwrap().center());
+    let original_mean = h.app.doc.as_ref().unwrap().measurement.result.as_ref().unwrap().mean;
+    h.click(h.find("PREVIOUS HOTTEST").unwrap().center());
+    assert_eq!(h.app.doc.as_ref().unwrap().measurement.hottest_rank, 0);
+    for _ in 0..21 {
+        h.click(h.find("NEXT HOTTEST").unwrap().center());
+    }
+    assert_eq!(h.app.doc.as_ref().unwrap().measurement.hottest_rank, 21);
+    assert_eq!(h.app.doc.as_ref().unwrap().video.as_ref().unwrap().current, 9);
+    h.click(h.find("PREVIOUS HOTTEST").unwrap().center());
+    let doc = h.app.doc.as_ref().unwrap();
+    assert_eq!(doc.measurement.hottest_rank, 20);
+    assert_eq!(doc.video.as_ref().unwrap().current, 10);
+    assert_eq!(doc.measurement.result.as_ref().unwrap().mean, original_mean);
+    assert_eq!(doc.measurement.result.as_ref().unwrap().hottest.frame, 30);
+    assert!(h.find("21 of 31").is_some());
+    h.click(h.find("NEXT HOTTEST").unwrap().center());
+    assert_eq!(h.app.doc.as_ref().unwrap().measurement.hottest_rank, 21);
+    for _ in 0..25 {
+        h.click(h.find("PREVIOUS HOTTEST").unwrap().center());
+    }
+    assert_eq!(h.app.doc.as_ref().unwrap().measurement.hottest_rank, 0);
+    assert_eq!(h.app.doc.as_ref().unwrap().video.as_ref().unwrap().current, 30);
+    std::fs::write(
+        std::path::Path::new(env!("CARGO_TARGET_TMPDIR")).join("csq-previous-hottest.png"),
+        h.png(),
+    )
+    .unwrap();
 }
