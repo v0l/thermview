@@ -18,6 +18,7 @@ All notable changes to thermview are listed here. The format follows
 - Use red for hottest/high readouts and blue for coldest/low readouts, including the colour bar and video/measurement summaries.
 
 ### Fixed
+- Release publishing updates an existing release and replaces matching build assets on retry; a verified publish-only recovery can reuse completed platform builds.
 - Remove leftover experimental reference-correction dependencies from range measurement so v0.2.1 builds independently of the calibrate branch on all platforms.
 - Video playback skips unreadable frames and continues, recording skipped frame numbers/errors. Long runs of bad frames are processed in bounded batches, and playback stops safely at an unreadable tail.
 
