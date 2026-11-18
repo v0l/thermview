@@ -5,14 +5,29 @@ pub struct Loaded {
     pub path: Option<std::path::PathBuf>,
 }
 
-pub const SUFFIXES: [&str; 10] =
-    [".irg", ".IRG", ".jpg", ".JPG", ".jpeg", ".JPEG", ".img", ".IMG", ".seq", ".SEQ"];
+pub const SUFFIXES: [&str; 12] = [
+    ".irg", ".IRG", ".jpg", ".JPG", ".jpeg", ".JPEG", ".img", ".IMG", ".seq", ".SEQ", ".csq",
+    ".CSQ",
+];
 
 pub fn dropped(file: &dyn egui::DroppedFile) -> Result<Loaded, String> {
     #[cfg(not(target_arch = "wasm32"))]
     return read(file.path());
     #[cfg(target_arch = "wasm32")]
     Err(format!("could not read {}", file.path().display()))
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub fn initial_directory() -> std::path::PathBuf {
+    let directory = std::env::current_dir().unwrap_or_default();
+    let executable_directory =
+        std::env::current_exe().ok().and_then(|p| p.parent().map(|p| p.to_path_buf()));
+    if directory.parent().is_none() || executable_directory.as_ref() == Some(&directory) {
+        if let Some(user) = std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" }) {
+            return std::path::PathBuf::from(user);
+        }
+    }
+    directory
 }
 
 #[cfg(not(target_arch = "wasm32"))]

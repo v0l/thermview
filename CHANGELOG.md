@@ -6,6 +6,104 @@ All notable changes to thermview are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-11-18
+
+### Added
+- Native Arch Linux x86-64 package build, installable with pacman.
+
+### Changed
+- Publish only clearly named platform installers in Releases, with a download table and SHA-256 hashes in collapsible release notes instead of duplicate portable archives and separate checksum assets. GitHub still provides its automatic source archives.
+
+### Fixed
+- Linux file and folder pickers use GTK directly rather than waiting for the XDG desktop portal, avoiding delays caused by an unhealthy portal service. Update Linux build and package dependencies for GTK 3; Windows/macOS retain their native picker backends.
+- System Linux builds ignore GTK module paths inherited from an unrelated Snap application such as VS Code, preventing incompatible editor-bundled GTK modules from breaking the picker.
+
+## [0.2.1] - 2026-11-16
+
+### Added
+- Previous hottest steps back one rank in Measure's hottest-frame list without restarting; previous/next controls stop at the list boundaries and preserve range statistics.
+- Current-frame Next hottest spot and Reset to hottest controls with selected temperature, pixel coordinates and an explicit spot marker in the viewer/exports. Plateau grouping and adjustable sensor-pixel spacing browse separated local peaks; browsing pauses playback and leaves true frame/range extrema unchanged.
+
+### Changed
+- Replace image scale buttons with cursor-centred Ctrl+scroll image zoom, wheel/trackpad panning, Shift+wheel horizontal panning, drag panning and Reset view. Preserve the image region across video frames independently of timeline zoom; image exports retain their full-frame resolution.
+- Default to Iron, listed before Inferno, and a 5–40°C colour range with video autorange off. The default range expands for newly encountered extrema without shrinking again; deliberate manual range edits stay fixed.
+- Use red for hottest/high readouts and blue for coldest/low readouts, including the colour bar and video/measurement summaries.
+
+### Fixed
+- Release publishing updates an existing release and replaces matching build assets on retry; a verified publish-only recovery can reuse completed platform builds.
+- Remove leftover experimental reference-correction dependencies from range measurement so v0.2.1 builds independently of the calibrate branch on all platforms.
+- Video playback skips unreadable frames and continues, recording skipped frame numbers/errors. Long runs of bad frames are processed in bounded batches, and playback stops safely at an unreadable tail.
+
+## [0.2.0] - 2026-11-15
+
+### Fixed
+- FLIR CSQ and radiometric JPEG conversion uses CameraInfo atmospheric coefficients and IR-window transmission/temperature, including during recalibration.
+- Preserve stored zero distance and humidity; accept percentage humidity using ExifTool's convention. Allow zero distance in the calibration panel.
+- Reject missing or invalid CameraInfo calibration rather than substituting generic constants or searching unrelated bytes.
+
+## [0.1.11] - 2026-11-13
+
+### Added
+- Native desktop file and folder dialogs, with thermal-file and all-file filters and nonblocking selection.
+- Windows MSI registration for Open With and default-app selection, with correctly quoted file paths.
+- Persistent Windows error dialogs and a startup log; retry OpenGL if WGPU graphics initialization fails before the app opens.
+- A Windows desktop build/test workflow that produces an MSI artifact on relevant master changes.
+
+### Fixed
+- Windows GUI launches avoid a transient console, while command-line launches attach to the calling console.
+- File browsers start in the user directory instead of the application installation directory when launched from installed shortcuts.
+
+## [0.1.10] - 2026-11-13
+
+### Changed
+- Range measurement skips unreadable frames and frames without valid temperatures, then continues through the entire selection.
+- Statistics and ranked candidates use only successfully analysed frames, with explicit analysed/selected counts and a partial-coverage notice.
+
+### Added
+- A Failures box at the bottom of Measure lists skipped frame numbers and decoding errors. All-failed selections report an error without fabricated statistics.
+
+## [0.1.9] - 2026-11-12
+
+### Added
+- Next hottest in the Measure tab browses distinct selected frames ranked by maximum temperature, with a candidate rank, frame, temperature and pixel location.
+- Go to hottest restarts candidate browsing; equal maxima are ordered chronologically and browsing stops at the last frame.
+
+## [0.1.8] - 2026-11-12
+
+### Added
+- A Measure activity for marking inclusive video ranges with I/O or buttons, with marks displayed on the timeline.
+- Cancellable range analysis with progress, hottest/coldest frame and pixel locations, average frame maximum/minimum, and an overall pixel mean.
+- Buttons to jump to measured extrema, calibration-aware results and invalidation, and explicit errors for incomplete analysis.
+
+## [0.1.7] - 2026-11-12
+
+### Added
+- A Premiere-style zoom scroll bar below the video ruler: drag its handles to change the visible frame range, or its middle to pan without seeking.
+- Playhead-anchored wheel and button zoom, Fit and double-click reset, and adaptive frame ticks for precise zoomed scrubbing.
+- Playback and stepping keep the playhead visible without resetting timeline zoom.
+
+## [0.1.6] - 2026-11-12
+
+### Fixed
+- The GitHub button links to alfiethology/thermview, using the repository URL from package metadata.
+
+## [0.1.5] - 2026-11-12
+
+### Added
+- A collapsible sidebar with Explorer and image-control activities on a left activity bar.
+- A desktop directory tree with expandable folders, folder selection, refresh and file opening, including readable errors for unsupported files.
+- Ctrl+B toggles the sidebar; Ctrl+Shift+E opens Explorer.
+
+## [0.1.4] - 2026-11-12
+
+### Added
+- FLIR CSQ playback with a video-only timeline and per-frame temperature readings.
+- Debian installers with a desktop launcher and CSQ file associations.
+
+### Fixed
+- Accept extra zero padding before the JPEG-LS end marker in FLIR recordings, so playback can pass affected frames without discarding their thermal data.
+- Use the installed executable's absolute path in the packaged desktop launcher.
+
 ## [0.1.3] - 2026-11-01
 
 ### Fixed

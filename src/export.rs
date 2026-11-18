@@ -32,7 +32,10 @@ pub fn png(doc: &Doc) -> Vec<u8> {
 pub fn file_name(doc: &Doc) -> String {
     let stem = doc.name.rsplit_once('.').map(|(s, _)| s).unwrap_or(&doc.name);
     let stem = if stem.is_empty() { "thermal-image" } else { stem };
-    format!("{stem}-thermview.png")
+    match &doc.video {
+        Some(video) => format!("{stem}-frame-{:06}-thermview.png", video.current + 1),
+        None => format!("{stem}-thermview.png"),
+    }
 }
 
 #[cfg(test)]

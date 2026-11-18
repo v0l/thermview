@@ -5,3 +5,5 @@
 .playwright-mcp/
 test-samples/
 .wrangler/
+
+/dist/

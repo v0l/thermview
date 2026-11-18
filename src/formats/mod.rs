@@ -16,6 +16,7 @@ pub fn parse(data: &[u8], name: Option<&str>) -> Result<ThermalImage, Error> {
         Format::Dji => dji::parse(data),
         Format::FlirAff => flir::parse(data),
         Format::FlirJpeg => rjpeg::parse(data),
+        Format::FlirCsq => rjpeg::parse_fff(data, Format::FlirCsq),
     }
     .map_err(|e| Error::new(format!("{}: {e}", format.label())))?;
     let exif = crate::exif::read(data);
@@ -26,6 +27,9 @@ pub fn parse(data: &[u8], name: Option<&str>) -> Result<ThermalImage, Error> {
 }
 
 pub fn detect(data: &[u8], name: Option<&str>) -> Result<Format, Error> {
+    if name.is_some_and(|n| n.to_ascii_lowercase().ends_with(".csq")) {
+        return Ok(Format::FlirCsq);
+    }
     if data.starts_with(b"AFF") || data.starts_with(b"FFF") {
         return Ok(Format::FlirAff);
     }
@@ -83,3 +87,6 @@ fn detect_jpeg(data: &[u8]) -> Option<Format> {
     }
     None
 }
+
+pub(crate) use flir::records;
+pub(crate) use rjpeg::parse_fff;

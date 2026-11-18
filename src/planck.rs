@@ -1,11 +1,44 @@
 use crate::image::Params;
 
 const ABS_ZERO: f64 = 273.15;
-const ATA1: f64 = 0.006569;
-const ATA2: f64 = 0.01262;
-const ATB1: f64 = -0.002276;
-const ATB2: f64 = -0.00667;
-const ATX: f64 = 1.9;
+/// File-specific atmospheric and IR-window settings. Defaults are retained only
+/// for legacy formats which do not use the FFF CameraInfo parser.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Environment {
+    pub alpha1: f64,
+    pub alpha2: f64,
+    pub beta1: f64,
+    pub beta2: f64,
+    pub x: f64,
+    pub window_temperature: f64,
+    pub window_transmission: f64,
+}
+
+impl Default for Environment {
+    fn default() -> Self {
+        Self {
+            alpha1: 0.006569,
+            alpha2: 0.01262,
+            beta1: -0.002276,
+            beta2: -0.00667,
+            x: 1.9,
+            window_temperature: 20.0,
+            window_transmission: 1.0,
+        }
+    }
+}
+
+impl Environment {
+    pub fn tau(&self, distance: f64, air: f64, humidity: f64) -> f64 {
+        let h2o = (humidity / 100.0)
+            * (1.5587 + 0.06939 * air - 0.00027816 * air.powi(2) + 0.00000068455 * air.powi(3))
+                .exp();
+        let d = (distance / 2.0).sqrt();
+        let w = h2o.sqrt();
+        self.x * (-d * (self.alpha1 + self.beta1 * w)).exp()
+            + (1.0 - self.x) * (-d * (self.alpha2 + self.beta2 * w)).exp()
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Planck {
@@ -42,11 +75,7 @@ impl Planck {
 }
 
 pub fn tau(distance: f64, air: f64, humidity: f64) -> f64 {
-    let h2o = (humidity / 100.0)
-        * (1.5587 + 0.06939 * air - 0.00027816 * air.powi(2) + 0.00000068455 * air.powi(3)).exp();
-    let d = (distance / 2.0).sqrt();
-    let w = h2o.sqrt();
-    ATX * (-d * (ATA1 + ATB1 * w)).exp() + (1.0 - ATX) * (-d * (ATA2 + ATB2 * w)).exp()
+    Environment::default().tau(distance, air, humidity)
 }
 
 pub struct Conversion {
@@ -57,12 +86,16 @@ pub struct Conversion {
 
 impl Conversion {
     pub fn new(p: &Params, planck: &Planck) -> Conversion {
-        let window_temp = p.air;
-        let window_trans = 1.0;
+        Self::with_environment(p, planck, &Environment::default())
+    }
+
+    pub fn with_environment(p: &Params, planck: &Planck, env: &Environment) -> Conversion {
+        let window_temp = env.window_temperature;
+        let window_trans = env.window_transmission;
         let window_emission = 1.0 - window_trans;
         let window_reflection = 0.0;
         let e = p.emissivity;
-        let tau1 = tau(p.distance, p.air, p.humidity);
+        let tau1 = env.tau(p.distance, p.air, p.humidity);
         let tau2 = tau1;
         let refl1 = (1.0 - e) / e * planck.radiance(p.reflected);
         let atm1 = (1.0 - tau1) / e / tau1 * planck.radiance(p.air);

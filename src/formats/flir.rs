@@ -13,10 +13,11 @@ pub fn records(data: &[u8]) -> Result<Vec<Record>, Error> {
     if !(data.starts_with(b"AFF") || data.starts_with(b"FFF")) {
         return Err(Error::new("no FFF/AFF structure"));
     }
-    let b = Bytes::be(data);
+    let version = Bytes::le(data).u32(0x14)?;
+    let b = Bytes::be(data).order((100..200).contains(&version));
     let index = b.u32(0x18)? as usize;
     let count = b.u32(0x1c)? as usize;
-    if count > 100 || index + count * 32 > data.len() {
+    if count > 100 || index.checked_add(count * 32).is_none_or(|end| end > data.len()) {
         return Err(Error::new("invalid record directory"));
     }
     let mut out = Vec::new();
@@ -25,7 +26,10 @@ pub fn records(data: &[u8]) -> Result<Vec<Record>, Error> {
         let kind = b.u16(at)?;
         let offset = b.u32(at + 12)? as usize;
         let length = b.u32(at + 16)? as usize;
-        if kind >= 1 && offset > 0 && offset + length <= data.len() {
+        if kind >= 1 {
+            if offset == 0 || offset.checked_add(length).is_none_or(|end| end > data.len()) {
+                return Err(Error::new("truncated FLIR record"));
+            }
             out.push(Record { kind, offset, length });
         }
     }

@@ -1,7 +1,7 @@
 use crate::colorbar;
 use crate::doc::Doc;
 use crate::host::{self, Loaded};
-use crate::overlay::{self, POINT_COLOURS};
+use crate::overlay::{self, COLD, HOT, POINT_COLOURS};
 use crate::palette::{Look, Mapping, Overscan, Palette, Unit};
 use egui::epaint::{Mesh, Vertex, WHITE_UV};
 use egui::{
@@ -10,8 +10,15 @@ use egui::{
 };
 use egui_bench::prelude::*;
 
-const REPO: &str = "https://github.com/v0l/thermview";
+const REPO: &str = env!("CARGO_PKG_REPOSITORY");
 const PRESETS: [(f64, f64); 3] = [(20.0, 40.0), (0.0, 80.0), (-10.0, 50.0)];
+
+#[derive(Clone, Copy, PartialEq)]
+enum Sidebar {
+    Explorer,
+    Controls,
+    Measure,
+}
 
 pub struct App {
     pub doc: Option<Doc>,
@@ -19,8 +26,12 @@ pub struct App {
     texture: Option<((Look, u64), TextureHandle)>,
     pointer: Option<(usize, usize, f32)>,
     status: Option<(String, bool)>,
+    sidebar: Option<Sidebar>,
+    last_sidebar: Sidebar,
     #[cfg(not(target_arch = "wasm32"))]
-    browser: Option<Browser>,
+    pub explorer: crate::explorer::Explorer,
+    #[cfg(not(target_arch = "wasm32"))]
+    pub file_dialog: crate::dialog::NativePicker,
     #[cfg(target_arch = "wasm32")]
     picker: host::Picker,
 }
@@ -34,8 +45,16 @@ impl App {
             texture: None,
             pointer: None,
             status: None,
+            sidebar: Some(if cfg!(target_arch = "wasm32") {
+                Sidebar::Controls
+            } else {
+                Sidebar::Explorer
+            }),
+            last_sidebar: Sidebar::Explorer,
             #[cfg(not(target_arch = "wasm32"))]
-            browser: None,
+            explorer: crate::explorer::Explorer::new(host::initial_directory()),
+            #[cfg(not(target_arch = "wasm32"))]
+            file_dialog: crate::dialog::NativePicker::default(),
             #[cfg(target_arch = "wasm32")]
             picker: host::Picker::default(),
         }
@@ -46,9 +65,21 @@ impl App {
             Ok(l) => l,
             Err(e) => return self.fail(e),
         };
-        match crate::parse(&loaded.bytes, Some(&loaded.name)) {
-            Ok(img) => {
-                self.doc = Some(Doc::new(img, &loaded.name, loaded.modified));
+        let is_video = loaded.name.to_ascii_lowercase().ends_with(".csq");
+        let result = if is_video {
+            crate::video::Video::open(loaded.bytes)
+                .and_then(|v| Doc::from_video(v, &loaded.name, loaded.modified))
+        } else {
+            crate::parse(&loaded.bytes, Some(&loaded.name))
+                .map(|img| Doc::new(img, &loaded.name, loaded.modified))
+        };
+        match result {
+            Ok(doc) => {
+                self.doc = Some(doc);
+                #[cfg(not(target_arch = "wasm32"))]
+                if let Some(path) = &loaded.path {
+                    self.explorer.reveal(path);
+                }
                 self.path = loaded.path;
                 self.texture = None;
                 self.pointer = None;
@@ -58,7 +89,7 @@ impl App {
                     loaded.name
                 )));
             }
-            Err(e) => self.fail(format!("{}: {e}", loaded.name)),
+            Err(e) => self.fail(format!("Cannot open {}: {e}", loaded.name)),
         }
     }
 
@@ -69,15 +100,8 @@ impl App {
     fn open(&mut self, _ctx: &egui::Context) {
         #[cfg(not(target_arch = "wasm32"))]
         {
-            let dir = self
-                .path
-                .as_ref()
-                .and_then(|p| p.parent())
-                .map(|p| p.to_path_buf())
-                .or_else(|| std::env::current_dir().ok())
-                .unwrap_or_default();
-            self.browser =
-                Some(Browser::new("open a thermal image", dir).suffixes(&host::SUFFIXES));
+            let dir = self.explorer.root.clone();
+            self.file_dialog.open(crate::dialog::Kind::File, dir, _ctx);
         }
         #[cfg(target_arch = "wasm32")]
         self.picker.pick(_ctx);
@@ -85,15 +109,28 @@ impl App {
 
     fn poll_open(&mut self, ctx: &egui::Context) {
         #[cfg(not(target_arch = "wasm32"))]
-        if let Some(b) = &mut self.browser {
-            match b.show(ctx) {
-                Picked::Browsing => {}
-                Picked::Cancelled | Picked::Folder(_) => self.browser = None,
-                Picked::File(p) => {
-                    self.browser = None;
-                    self.load(ctx, host::read(&p));
+        if let Some(choice) = self.file_dialog.poll(ctx) {
+            match choice {
+                crate::dialog::Choice::File(path) => self.load(ctx, host::read(&path)),
+                crate::dialog::Choice::Folder(path) => {
+                    self.explorer.set_root(path);
+                    self.sidebar = Some(Sidebar::Explorer);
+                    self.last_sidebar = Sidebar::Explorer;
                 }
+                crate::dialog::Choice::Cancelled => {}
             }
+        }
+        if ctx.input(|i| i.modifiers.command && i.key_pressed(egui::Key::B)) {
+            self.sidebar = if let Some(panel) = self.sidebar {
+                self.last_sidebar = panel;
+                None
+            } else {
+                Some(self.last_sidebar)
+            };
+        }
+        if ctx.input(|i| i.modifiers.command && i.modifiers.shift && i.key_pressed(egui::Key::E)) {
+            self.sidebar = Some(Sidebar::Explorer);
+            self.last_sidebar = Sidebar::Explorer;
         }
         #[cfg(target_arch = "wasm32")]
         if let Some(l) = self.picker.take() {
@@ -106,7 +143,7 @@ impl App {
         if ctx.input(|i| i.modifiers.command && i.key_pressed(egui::Key::O)) {
             self.open(ctx);
         }
-        if ctx.input(|i| i.modifiers.command && i.key_pressed(egui::Key::E)) {
+        if ctx.input(|i| i.modifiers.command && !i.modifiers.shift && i.key_pressed(egui::Key::E)) {
             self.export();
         }
     }
@@ -129,7 +166,7 @@ impl App {
             Line::new().legend("thermview").value(name).show(ui);
             if ui
                 .add(Key::new("open").outline(VALUE))
-                .on_hover_text("open a thermal image, ctrl+O")
+                .on_hover_text("open a thermal image or video, ctrl+O")
                 .clicked()
             {
                 self.open(&ctx);
@@ -144,7 +181,7 @@ impl App {
                 }
                 if ui
                     .add(Key::new("clear").outline(VALUE))
-                    .on_hover_text("close this image")
+                    .on_hover_text("close this file")
                     .clicked()
                 {
                     self.doc = None;
@@ -168,6 +205,476 @@ impl App {
             });
         });
         ui.add_space(6.0);
+    }
+
+    fn activity_bar(&mut self, ui: &mut Ui) {
+        for (panel, caption, help) in [
+            (Sidebar::Explorer, "FILES", "Explorer · Ctrl+Shift+E"),
+            (Sidebar::Controls, "LOOK", "Image controls · palette, range and display"),
+            (Sidebar::Measure, "MEASURE", "Video range measurements · I / O to mark frames"),
+        ] {
+            let (rect, response) = ui.allocate_exact_size(vec2(52.0, 58.0), Sense::click());
+            let on = self.sidebar == Some(panel);
+            let p = ui.painter();
+            if on || response.hovered() {
+                p.rect_filled(rect, 0.0, if on { PANEL } else { BAND });
+            }
+            if on {
+                p.rect_filled(
+                    Rect::from_min_size(rect.min, vec2(2.0, rect.height())),
+                    0.0,
+                    READOUT,
+                );
+            }
+            let colour = if on { READOUT } else { LEGEND };
+            let stroke = Stroke::new(1.5, colour);
+            let center = rect.center_top() + vec2(0.0, 22.0);
+            if panel == Sidebar::Explorer {
+                p.rect_stroke(
+                    Rect::from_center_size(center + vec2(-3.0, -3.0), vec2(15.0, 19.0)),
+                    1.0,
+                    stroke,
+                    StrokeKind::Inside,
+                );
+                p.rect_filled(
+                    Rect::from_center_size(center + vec2(3.0, 3.0), vec2(15.0, 19.0)),
+                    1.0,
+                    if on { PANEL } else { CHASSIS },
+                );
+                p.rect_stroke(
+                    Rect::from_center_size(center + vec2(3.0, 3.0), vec2(15.0, 19.0)),
+                    1.0,
+                    stroke,
+                    StrokeKind::Inside,
+                );
+            } else if panel == Sidebar::Measure {
+                p.line_segment([center + vec2(-11.0, 8.0), center + vec2(11.0, 8.0)], stroke);
+                for (x, height) in [(-7.0, 9.0), (0.0, 20.0), (7.0, 14.0)] {
+                    p.rect_filled(
+                        Rect::from_min_size(
+                            center + vec2(x - 2.0, 8.0 - height),
+                            vec2(4.0, height),
+                        ),
+                        0.0,
+                        colour,
+                    );
+                }
+            } else {
+                for (y, x) in [(-8.0, -4.0), (0.0, 5.0), (8.0, -1.0)] {
+                    p.line_segment([center + vec2(-11.0, y), center + vec2(11.0, y)], stroke);
+                    p.circle_filled(center + vec2(x, y), 3.0, colour);
+                }
+            }
+            p.text(
+                pos2(rect.center().x, rect.bottom() - 8.0),
+                Align2::CENTER_BOTTOM,
+                caption,
+                figure(8.0),
+                colour,
+            );
+            response.widget_info(|| egui::WidgetInfo::selected(egui::Role::Tab, true, on, caption));
+            if response.on_hover_text(help).clicked() {
+                self.sidebar = if on { None } else { Some(panel) };
+                self.last_sidebar = panel;
+            }
+        }
+    }
+
+    fn sidebar(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            Line::new()
+                .legend(match self.sidebar {
+                    Some(Sidebar::Explorer) => "explorer",
+                    Some(Sidebar::Measure) => "measure",
+                    _ => "image controls",
+                })
+                .show(ui);
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                if ui
+                    .add(Key::new("hide").outline(VALUE))
+                    .on_hover_text("toggle sidebar · Ctrl+B")
+                    .clicked()
+                {
+                    if let Some(panel) = self.sidebar {
+                        self.last_sidebar = panel;
+                    }
+                    self.sidebar = None;
+                }
+            });
+        });
+        ui.add_space(8.0);
+        match self.sidebar {
+            Some(Sidebar::Controls) => {
+                egui::ScrollArea::vertical().id_salt("image controls scroll").show(ui, |ui| {
+                    if let Some(doc) = &mut self.doc {
+                        App::controls(ui, doc);
+                    } else {
+                        hint(ui, "open a thermal image or video to adjust its appearance");
+                    }
+                });
+            }
+            Some(Sidebar::Explorer) => {
+                #[cfg(not(target_arch = "wasm32"))]
+                self.explorer_panel(ui);
+                #[cfg(target_arch = "wasm32")]
+                {
+                    hint(ui, "directory browsing is available in the desktop app");
+                    if ui.add(Key::new("open file").outline(VALUE)).clicked() {
+                        self.open(&ui.ctx().clone());
+                    }
+                }
+            }
+            Some(Sidebar::Measure) => {
+                egui::ScrollArea::vertical()
+                    .id_salt("measure scroll")
+                    .show(ui, |ui| self.measure_panel(ui));
+            }
+            None => {}
+        }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn explorer_panel(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            if ui.add(Key::new("open folder").outline(VALUE)).clicked() {
+                self.file_dialog.open(
+                    crate::dialog::Kind::Folder,
+                    self.explorer.root.clone(),
+                    ui.ctx(),
+                );
+            }
+            if ui.add(Key::new("up").outline(VALUE)).on_hover_text("parent directory").clicked() {
+                if let Some(parent) = self.explorer.root.parent().map(|p| p.to_path_buf()) {
+                    self.explorer.set_root(parent);
+                }
+            }
+            if ui.add(Key::new("refresh").outline(VALUE)).clicked() {
+                self.explorer.refresh();
+            }
+        });
+        ui.add_space(6.0);
+        let title = self
+            .explorer
+            .root
+            .file_name()
+            .unwrap_or(self.explorer.root.as_os_str())
+            .to_string_lossy();
+        ui.label(egui::RichText::new(title.to_string()).font(figure(12.0)).color(VALUE))
+            .on_hover_text(self.explorer.root.display().to_string());
+        ui.add_space(4.0);
+        let opened = egui::ScrollArea::vertical()
+            .id_salt("explorer scroll")
+            .show(ui, |ui| self.explorer.show(ui))
+            .inner;
+        if let Some(path) = opened {
+            if path.is_file() {
+                self.load(&ui.ctx().clone(), host::read(&path));
+            } else {
+                self.fail(format!("Cannot read {}: not a regular file", path.display()));
+            }
+        }
+    }
+
+    fn measure_input(&mut self, ctx: &egui::Context) {
+        if ctx.text_edit_focused() || ctx.input(|i| i.modifiers.any()) {
+            return;
+        }
+        let start = ctx.input(|i| i.key_pressed(egui::Key::I));
+        let end = ctx.input(|i| i.key_pressed(egui::Key::O));
+        if !(start || end) {
+            return;
+        }
+        let Some(doc) = &mut self.doc else { return };
+        let Some(video) = &mut doc.video else { return };
+        video.playing = false;
+        if start {
+            doc.measurement.mark_start(video.current);
+        }
+        if end {
+            doc.measurement.mark_end(video.current);
+        }
+        self.sidebar = Some(Sidebar::Measure);
+        self.last_sidebar = Sidebar::Measure;
+    }
+
+    fn measure_tick(&mut self, ctx: &egui::Context) {
+        if let Some(doc) = &mut self.doc
+            && let Some(video) = &doc.video
+        {
+            doc.measurement.advance(video);
+            if doc.measurement.running() {
+                ctx.request_repaint();
+            }
+        }
+    }
+
+    fn measure_panel(&mut self, ui: &mut Ui) {
+        let Some(doc) = &mut self.doc else {
+            hint(ui, "open a video to measure a frame range");
+            return;
+        };
+        let Some(video) = &mut doc.video else {
+            hint(ui, "range measurements are available for videos");
+            return;
+        };
+        let mut seek = None;
+        let measurement = &mut doc.measurement;
+        section(ui, "selected range", "endpoints included", |ui| {
+            ui.horizontal(|ui| {
+                if ui
+                    .add(Key::new("mark start").outline(READOUT))
+                    .on_hover_text("mark the current frame as the start · I")
+                    .clicked()
+                {
+                    video.playing = false;
+                    measurement.mark_start(video.current);
+                }
+                if ui
+                    .add(Key::new("mark end").outline(READOUT))
+                    .on_hover_text("mark the current frame as the end · O")
+                    .clicked()
+                {
+                    video.playing = false;
+                    measurement.mark_end(video.current);
+                }
+            });
+            reading(
+                ui,
+                "start · I",
+                measurement
+                    .start
+                    .map(|f| format!("frame {}", f + 1))
+                    .unwrap_or_else(|| "not marked".into()),
+            );
+            reading(
+                ui,
+                "end · O",
+                measurement
+                    .end
+                    .map(|f| format!("frame {}", f + 1))
+                    .unwrap_or_else(|| "not marked".into()),
+            );
+            ui.horizontal(|ui| {
+                if ui
+                    .add_enabled(
+                        measurement.start.is_some(),
+                        Key::new("go to start").outline(VALUE),
+                    )
+                    .clicked()
+                {
+                    seek = measurement.start;
+                }
+                if ui
+                    .add_enabled(measurement.end.is_some(), Key::new("go to end").outline(VALUE))
+                    .clicked()
+                {
+                    seek = measurement.end;
+                }
+            });
+            if let (Some(start), Some(end)) = (measurement.start, measurement.end) {
+                if start > end {
+                    note(ui, "End is before start. Re-mark a frame or swap the marks.", FAULT);
+                    if ui.add(Key::new("swap marks").outline(VALUE)).clicked() {
+                        measurement.mark_start(end);
+                        measurement.mark_end(start);
+                    }
+                } else {
+                    reading(ui, "frames", (end - start + 1).to_string());
+                    reading(
+                        ui,
+                        "time span",
+                        format!(
+                            "{:.3} s{}",
+                            (end - start) as f64 / video.fps,
+                            if video.estimated_fps { " (estimated)" } else { "" }
+                        ),
+                    );
+                }
+            }
+            ui.horizontal(|ui| {
+                if measurement.running() {
+                    if ui.add(Key::new("cancel").outline(FAULT)).clicked() {
+                        measurement.cancel();
+                    }
+                } else if ui
+                    .add_enabled(
+                        measurement.valid_range(),
+                        Key::new("analyse range").solid(READOUT),
+                    )
+                    .clicked()
+                {
+                    video.playing = false;
+                    let params =
+                        (doc.image.params != doc.source.params).then_some(doc.image.params);
+                    measurement.begin(video.len(), params);
+                    ui.ctx().request_repaint();
+                }
+                if ui
+                    .add(Key::new("reset").outline(VALUE))
+                    .on_hover_text("clear range marks and measurement results")
+                    .clicked()
+                {
+                    measurement.clear();
+                }
+            });
+        });
+        ui.add_space(8.0);
+        if let Some((done, total)) = measurement.progress() {
+            ui.add(
+                egui::ProgressBar::new(done as f32 / total as f32)
+                    .text(format!("{done} / {total} frames")),
+            );
+            hint(ui, "analysing every frame; the current view stays in place");
+            if !measurement.failures.is_empty() {
+                note(ui, &format!("{} frames skipped so far", measurement.failures.len()), FAULT);
+            }
+        }
+        if let Some(error) = &measurement.error {
+            note(ui, error, FAULT);
+        }
+        if let Some(result) = &measurement.result {
+            reading(
+                ui,
+                "analysed",
+                format!("{} / {} frames", result.frames, result.selected_frames),
+            );
+            if !measurement.failures.is_empty() {
+                note(
+                    ui,
+                    &format!(
+                        "Partial coverage: {} frames skipped. Results describe readable frames only.",
+                        measurement.failures.len()
+                    ),
+                    FAULT,
+                );
+            }
+            ui.add_space(8.0);
+            let unit = doc.unit;
+            let mut rank = measurement.hottest_rank.min(result.hottest_frames.len() - 1);
+            section(ui, "hottest", "frames ranked by maximum temperature", |ui| {
+                let p = result.hottest_frames[rank];
+                hero(
+                    ui,
+                    &format!("frame {} · pixel {}, {}", p.frame + 1, p.spot.x, p.spot.y),
+                    &unit.figure(p.spot.celsius),
+                    unit.symbol(),
+                    HOT,
+                );
+                reading(
+                    ui,
+                    "candidate",
+                    format!("{} of {}", rank + 1, result.hottest_frames.len()),
+                );
+                let button = |text: &str| {
+                    egui::Button::new(egui::RichText::new(text).font(figure(10.0)).color(HOT))
+                        .fill(WELL)
+                        .stroke(Stroke::new(1.0, ETCH))
+                };
+                if ui
+                    .add_sized(vec2(ui.available_width(), 30.0), button("GO TO HOTTEST"))
+                    .on_hover_text("return to the hottest frame and restart the ranked list")
+                    .clicked()
+                {
+                    rank = 0;
+                    seek = Some(result.hottest.frame);
+                }
+                ui.horizontal(|ui| {
+                    let width = ((ui.available_width() - ui.spacing().item_spacing.x) / 2.0).max(1.0);
+                    let has_previous = rank > 0;
+                    let previous = ui.add_enabled_ui(has_previous, |ui| ui.add_sized(vec2(width, 30.0), button("PREVIOUS HOTTEST"))).inner;
+                    if previous.on_hover_text(if has_previous {
+                        "go back one rank in the hottest-frame list"
+                    } else { "already at the hottest-ranked frame" }).clicked() && has_previous {
+                        rank -= 1;
+                        seek = Some(result.hottest_frames[rank].frame);
+                    }
+                    let has_next = rank + 1 < result.hottest_frames.len();
+                    let next = ui.add_enabled_ui(has_next, |ui| ui.add_sized(vec2(width, 30.0), button("NEXT HOTTEST"))).inner;
+                    if next.on_hover_text(if has_next {
+                        "go to the next frame ranked by its maximum temperature; ties use frame order"
+                    } else { "last ranked frame; use Previous hottest to go back" }).clicked() && has_next {
+                        rank += 1;
+                        seek = Some(result.hottest_frames[rank].frame);
+                    }
+                });
+            });
+            measurement.hottest_rank = rank;
+            ui.add_space(8.0);
+            section(ui, "coldest", "lowest temperature in readable frames", |ui| {
+                let p = result.coldest;
+                hero(
+                    ui,
+                    &format!("frame {} · pixel {}, {}", p.frame + 1, p.spot.x, p.spot.y),
+                    &unit.figure(p.spot.celsius),
+                    unit.symbol(),
+                    COLD,
+                );
+                if ui.add(Key::new("go to coldest").outline(COLD)).clicked() {
+                    seek = Some(p.frame);
+                }
+            });
+            ui.add_space(8.0);
+            section(ui, "averages", "frame extremes and pixel mean", |ui| {
+                reading(ui, "average max", unit.reading(result.average_max as f32));
+                hint(ui, "mean of the hottest reading in each frame");
+                reading(ui, "average min", unit.reading(result.average_min as f32));
+                hint(ui, "mean of the coldest reading in each frame");
+                reading(ui, "overall mean", unit.reading(result.mean as f32));
+                hint(ui, "mean of valid pixels in analysed frames");
+            });
+            ui.add_space(8.0);
+            hint(
+                ui,
+                if result.edited_calibration {
+                    "uses your edited calibration; recalibrating clears these results"
+                } else {
+                    "uses each frame's recorded calibration; invalid temperatures are excluded"
+                },
+            );
+        } else if !measurement.running() && measurement.error.is_none() {
+            hint(ui, "mark a start with I and an end with O, then analyse the range");
+        }
+        if !measurement.running()
+            && (measurement.result.is_some() || !measurement.failures.is_empty())
+        {
+            ui.add_space(8.0);
+            section(ui, "failures", &format!("{} skipped", measurement.failures.len()), |ui| {
+                if measurement.failures.is_empty() {
+                    hint(ui, "no failed frames");
+                } else {
+                    hint(ui, "hover a frame for its full error");
+                    egui::ScrollArea::vertical()
+                        .id_salt("measurement failures")
+                        .max_height(180.0)
+                        .show_rows(ui, 22.0, measurement.failures.len(), |ui, rows| {
+                            for index in rows {
+                                let failure = &measurement.failures[index];
+                                let prefix = format!("CSQ frame {}: ", failure.frame + 1);
+                                let message =
+                                    failure.error.strip_prefix(&prefix).unwrap_or(&failure.error);
+                                ui.add(
+                                    egui::Label::new(
+                                        egui::RichText::new(format!(
+                                            "Frame {}: {message}",
+                                            failure.frame + 1
+                                        ))
+                                        .font(figure(11.0))
+                                        .color(FAULT),
+                                    )
+                                    .truncate(),
+                                )
+                                .on_hover_text(&failure.error);
+                            }
+                        });
+                }
+            });
+        }
+        if let Some(frame) = seek {
+            video.playing = false;
+            if let Err(e) = doc.seek(frame) {
+                self.fail(e.to_string());
+            }
+        }
     }
 
     fn controls(ui: &mut Ui, doc: &mut Doc) {
@@ -210,6 +717,61 @@ impl App {
         ui.add_space(8.0);
         section(ui, "points", "click the image to add one", |ui| points(ui, doc));
         ui.add_space(8.0);
+        section(ui, "frame hot spots", "current frame only", |ui| {
+            if let Some(p) = doc.hotspots.selected(&doc.image) {
+                hero(
+                    ui,
+                    &format!("pixel {}, {} · spot {}", p.x, p.y, doc.hotspots.rank() + 1),
+                    &doc.unit.figure(p.celsius),
+                    doc.unit.symbol(),
+                    HOT,
+                );
+                if let Some(count) = doc.hotspots.count() {
+                    reading(ui, "spot", format!("{} of {}", doc.hotspots.rank() + 1, count));
+                }
+                if ui
+                    .add_enabled(
+                        doc.hotspots.has_next(),
+                        Key::new("next hottest spot").outline(HOT),
+                    )
+                    .on_hover_text(
+                        "pause playback and move to the next separated local peak in this frame",
+                    )
+                    .clicked()
+                {
+                    doc.next_hotspot();
+                }
+                if ui
+                    .add_enabled(
+                        doc.hotspots.rank() > 0,
+                        Key::new("reset to hottest").outline(VALUE),
+                    )
+                    .clicked()
+                {
+                    doc.reset_hotspot();
+                }
+                let mut spacing = doc.hotspots.spacing();
+                ui.horizontal(|ui| {
+                    ui.label("Spot spacing");
+                    if ui
+                        .add(egui::DragValue::new(&mut spacing).range(1..=100).suffix(" px"))
+                        .changed()
+                    {
+                        doc.set_hotspot_spacing(spacing);
+                    }
+                });
+                hint(
+                    ui,
+                    "Distinct local peaks, not eye/ear detection. Reduce spacing for nearby features; increase it to skip more of a large hot area.",
+                );
+                if !doc.hotspots.has_next() {
+                    hint(ui, "No further distinct hot spots at this spacing.");
+                }
+            } else {
+                hint(ui, "No valid temperature readings in this frame.");
+            }
+        });
+        ui.add_space(8.0);
         if doc.image.recomputable() {
             section(ui, "calibration", "recomputes every pixel", |ui| calibration(ui, doc));
             ui.add_space(8.0);
@@ -241,51 +803,286 @@ impl App {
     fn plate(&mut self, ui: &mut Ui) {
         let Some(tex) = self.texture(ui.ctx()) else { return };
         let Some(doc) = &mut self.doc else { return };
-        let size = overlay::image_rect(Pos2::ZERO, doc).size();
-        egui::ScrollArea::both().auto_shrink([false, false]).show(ui, |ui| {
-            ui.horizontal_top(|ui| {
-                ui.add_space(4.0);
-                colorbar::show(ui, doc, size.y.max(300.0));
-                ui.add_space(8.0);
-                let (rect, resp) = ui.allocate_exact_size(size, Sense::click());
-                let p = ui.painter_at(rect.expand(1.0));
-                p.rect_filled(rect, 0.0, WELL);
-                p.image(
-                    tex,
-                    rect,
-                    Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
-                    Color32::WHITE,
-                );
-                p.rect_stroke(rect, 0.0, Stroke::new(1.0, ETCH), StrokeKind::Outside);
-                overlay::paint(&ui.painter_at(rect), rect, doc);
-
-                let s = doc.scale as f32;
-                let pixel = |at: Pos2| {
-                    let v = (at - rect.min) / s;
-                    let (x, y) = (v.x.floor() as i64, v.y.floor() as i64);
-                    (x >= 0
-                        && y >= 0
-                        && (x as usize) < doc.image.width
-                        && (y as usize) < doc.image.height)
-                        .then_some((x as usize, y as usize))
-                };
-                self.pointer = resp
-                    .hover_pos()
-                    .and_then(pixel)
-                    .map(|(x, y)| (x, y, doc.image.at(x, y).unwrap_or(f32::NAN)));
-                if resp.hovered() {
-                    ui.ctx().set_cursor_icon(egui::CursorIcon::Crosshair);
-                }
-                if let (Some(at), Some((_, _, c))) = (resp.hover_pos(), self.pointer) {
-                    tag(&ui.painter_at(rect), rect, at, &doc.unit.reading(c));
-                }
-                if resp.clicked()
-                    && let Some((x, y)) = resp.interact_pointer_pos().and_then(pixel)
-                {
-                    doc.add_point(x, y);
-                }
-            });
+        ui.horizontal_wrapped(|ui| {
+            hint(ui, "Ctrl+scroll: zoom · wheel: pan · Shift+wheel: sideways");
+            if ui.add(Key::new("reset view").outline(VALUE)).clicked() {
+                doc.view = Default::default();
+            }
         });
+        let height = ui.available_height().max(1.0);
+        ui.horizontal_top(|ui| {
+            let bounds = (doc.look.min, doc.look.max);
+            colorbar::show(ui, doc, height);
+            if bounds != (doc.look.min, doc.look.max) {
+                doc.default_range = false;
+                if let Some(video) = &mut doc.video {
+                    video.auto_range = false;
+                }
+            }
+            ui.add_space(8.0);
+            let (viewport, response) = ui.allocate_exact_size(
+                ui.available_size().max(vec2(1.0, 1.0)),
+                Sense::click_and_drag(),
+            );
+            let image_size = vec2(doc.image.width as f32, doc.image.height as f32);
+            if response.hovered() {
+                let pointer = response.hover_pos().unwrap_or(viewport.center());
+                let events = ui.input(|i| i.events.clone());
+                for event in events {
+                    match event {
+                        egui::Event::MouseWheel { unit, delta, modifiers, .. } => {
+                            let delta = delta
+                                * match unit {
+                                    egui::MouseWheelUnit::Point => 1.0,
+                                    egui::MouseWheelUnit::Line => 40.0,
+                                    egui::MouseWheelUnit::Page => viewport.height(),
+                                };
+                            if modifiers.ctrl || modifiers.command {
+                                doc.view.zoom_at(
+                                    (delta.y * 0.002).clamp(-2.0, 2.0).exp(),
+                                    pointer,
+                                    viewport,
+                                    image_size,
+                                );
+                            } else {
+                                let delta = if modifiers.shift {
+                                    vec2(delta.x + delta.y, 0.0)
+                                } else {
+                                    delta
+                                };
+                                doc.view.pan(delta, viewport, image_size);
+                            }
+                            ui.ctx().request_repaint();
+                        }
+                        egui::Event::Zoom(factor) => {
+                            doc.view.zoom_at(factor, pointer, viewport, image_size);
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            if response.dragged() && doc.view.zoom > 1.0 {
+                doc.view.pan(ui.input(|i| i.pointer.delta()), viewport, image_size);
+            }
+            let rect = doc.view.rect(viewport, image_size);
+            let p = ui.painter_at(viewport);
+            p.rect_filled(viewport, 0.0, WELL);
+            p.image(tex, rect, Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
+            p.rect_stroke(rect, 0.0, Stroke::new(1.0, ETCH), StrokeKind::Inside);
+            overlay::paint(&p, rect, doc);
+            let scale = rect.width() / doc.image.width as f32;
+            let pixel = |at: Pos2| {
+                if !rect.contains(at) || !viewport.contains(at) {
+                    return None;
+                }
+                let v = (at - rect.min) / scale;
+                let x = v.x.floor() as usize;
+                let y = v.y.floor() as usize;
+                (x < doc.image.width && y < doc.image.height).then_some((x, y))
+            };
+            self.pointer = response
+                .hover_pos()
+                .and_then(pixel)
+                .map(|(x, y)| (x, y, doc.image.at(x, y).unwrap_or(f32::NAN)));
+            if response.hovered() {
+                ui.ctx().set_cursor_icon(if doc.view.zoom > 1.0 {
+                    egui::CursorIcon::Grab
+                } else {
+                    egui::CursorIcon::Crosshair
+                });
+            }
+            if let (Some(at), Some((_, _, c))) = (response.hover_pos(), self.pointer) {
+                tag(&p, viewport, at, &doc.unit.reading(c));
+            }
+            if response.clicked()
+                && let Some((x, y)) = response.interact_pointer_pos().and_then(pixel)
+            {
+                doc.add_point(x, y);
+            }
+        });
+    }
+
+    fn playback(&mut self, ctx: &egui::Context) {
+        let Some(doc) = &mut self.doc else { return };
+        let Some(video) = &mut doc.video else { return };
+        let now = ctx.input(|i| i.time);
+        let keyboard = !ctx.egui_wants_keyboard_input();
+        let mut target = video.current;
+        if keyboard && ctx.input(|i| i.key_pressed(egui::Key::Space)) {
+            video.playing = !video.playing;
+            video.pending_frame = None;
+            video.last_tick = Some(now);
+            if video.playing && video.current + 1 == video.len() {
+                target = 0;
+            }
+        }
+        if keyboard {
+            if ctx.input(|i| i.key_pressed(egui::Key::ArrowLeft)) {
+                target = target.saturating_sub(1);
+                video.playing = false;
+            }
+            if ctx.input(|i| i.key_pressed(egui::Key::ArrowRight)) {
+                target = (target + 1).min(video.len() - 1);
+                video.playing = false;
+            }
+            if ctx.input(|i| i.key_pressed(egui::Key::Home)) {
+                target = 0;
+                video.playing = false;
+            }
+            if ctx.input(|i| i.key_pressed(egui::Key::End)) {
+                target = video.len() - 1;
+                video.playing = false;
+            }
+        }
+        if video.playing {
+            let last_frame = video.len() - 1;
+            let last = video.last_tick.get_or_insert(now);
+            let steps = ((now - *last) * video.fps).floor().max(0.0) as usize;
+            if steps > 0 {
+                target = target.saturating_add(steps).min(last_frame);
+                *last += steps as f64 / video.fps;
+            }
+            ctx.request_repaint_after(std::time::Duration::from_secs_f64(1.0 / video.fps));
+            doc.advance_playback(target);
+            if doc.video.as_ref().unwrap().pending_frame.is_some() {
+                ctx.request_repaint();
+            }
+        } else {
+            video.last_tick = None;
+            video.pending_frame = None;
+            if let Err(e) = doc.seek(target) {
+                self.fail(e.to_string());
+            }
+        }
+    }
+
+    fn timeline(&mut self, ui: &mut Ui) {
+        let Some(doc) = &mut self.doc else { return };
+        let Some(video) = &mut doc.video else { return };
+        let mut target = video.current;
+        let mut refresh_range = false;
+        ui.horizontal(|ui| {
+            if ui.add(Key::new("|<").outline(VALUE)).on_hover_text("first frame · Home").clicked()
+            {
+                target = 0;
+                video.playing = false;
+            }
+            if ui.add(Key::new("<").outline(VALUE)).on_hover_text("previous frame · Left").clicked()
+            {
+                target = target.saturating_sub(1);
+                video.playing = false;
+            }
+            if ui
+                .add(Key::new(if video.playing { "pause" } else { "play" }).outline(READOUT))
+                .on_hover_text("play / pause · Space")
+                .clicked()
+            {
+                video.playing = !video.playing;
+                video.pending_frame = None;
+                video.last_tick = Some(ui.input(|i| i.time));
+                if video.playing && target + 1 == video.len() {
+                    target = 0;
+                }
+                ui.ctx().request_repaint();
+            }
+            if ui.add(Key::new(">").outline(VALUE)).on_hover_text("next frame · Right").clicked() {
+                target = (target + 1).min(video.len() - 1);
+                video.playing = false;
+            }
+            if ui.add(Key::new(">|").outline(VALUE)).on_hover_text("last frame · End").clicked() {
+                target = video.len() - 1;
+                video.playing = false;
+            }
+            ui.label(
+                egui::RichText::new(format!("FRAME {} / {}", video.current + 1, video.len()))
+                    .font(figure(12.0))
+                    .color(VALUE),
+            );
+            let mut extrema = egui::text::LayoutJob::default();
+            for (text, colour) in [
+                (format!("MIN {}", doc.unit.reading(doc.image.stats.min.celsius)), COLD),
+                (format!("    MAX {}", doc.unit.reading(doc.image.stats.max.celsius)), HOT),
+            ] {
+                extrema.append(
+                    &text,
+                    0.0,
+                    egui::TextFormat { font_id: figure(12.0), color: colour, ..Default::default() },
+                );
+            }
+            ui.label(extrema);
+            if !video.playback_failures.is_empty() {
+                ui.label(
+                    egui::RichText::new(format!("{} skipped", video.playback_failures.len()))
+                        .color(LEGEND),
+                )
+                .on_hover_text(
+                    video
+                        .playback_failures
+                        .iter()
+                        .map(|f| format!("Frame {}: {}", f.frame + 1, f.error))
+                        .collect::<Vec<_>>()
+                        .join("\n"),
+                );
+            }
+            if toggle(ui, "auto range", video.auto_range)
+                .on_hover_text("fit the palette to each frame")
+                .clicked()
+            {
+                video.auto_range = !video.auto_range;
+                refresh_range = video.auto_range;
+            }
+            ui.add(
+                egui::DragValue::new(&mut video.fps).range(1.0..=1000.0).speed(1.0).suffix(" fps"),
+            )
+            .on_hover_text(if video.estimated_fps {
+                "playback rate · metadata unavailable, defaults to 30 fps"
+            } else {
+                "playback frame rate"
+            });
+            if ui
+                .add(Key::new("−").outline(VALUE))
+                .on_hover_text("zoom out around the playhead")
+                .clicked()
+            {
+                video.view.zoom(0.5, video.current);
+            }
+            if ui
+                .add(Key::new("+").outline(VALUE))
+                .on_hover_text("zoom in around the playhead")
+                .clicked()
+            {
+                video.view.zoom(2.0, video.current);
+            }
+            if ui
+                .add(Key::new("fit").outline(VALUE))
+                .on_hover_text("show the entire video")
+                .clicked()
+            {
+                video.view.fit();
+            }
+        });
+        ui.add_space(4.0);
+        if let Some(frame) = crate::timeline::show(
+            ui,
+            &mut video.view,
+            video.current,
+            (doc.measurement.start, doc.measurement.end),
+        ) {
+            target = frame;
+            video.playing = false;
+        }
+        if refresh_range {
+            doc.auto_range();
+        }
+        let playing = doc.video.as_ref().unwrap().playing;
+        if playing && target != doc.video.as_ref().unwrap().current {
+            doc.advance_playback(target);
+        } else if !playing {
+            doc.video.as_mut().unwrap().pending_frame = None;
+            if let Err(e) = doc.seek(target) {
+                self.fail(e.to_string());
+            }
+        }
     }
 
     fn welcome(&mut self, ui: &mut Ui) {
@@ -298,7 +1095,7 @@ impl App {
                 ui,
                 Some(if hovering { READOUT } else { ETCH }),
                 |ui| {
-                    Line::new().legend("open a thermal image").show(ui);
+                    Line::new().legend("open a thermal image or video").show(ui);
                 },
                 |ui| {
                     ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
@@ -310,7 +1107,7 @@ impl App {
                         ui.add_space(4.0);
                         reading(ui, "infiray", "IRG from C200, C210, P200, Autel Evo II Dual");
                         reading(ui, "hikmicro", "JPEG from Pocket2, SP60");
-                        reading(ui, "flir", "R-JPEG from E, T, A and B series, AFF .img");
+                        reading(ui, "flir", "R-JPEG, AFF .img and CSQ video");
                         reading(ui, "dji", "R-JPEG from the Mavic 2 Enterprise Advanced");
                         ui.add_space(6.0);
                         if ui.add(Key::new("open").solid(READOUT)).clicked() {
@@ -407,20 +1204,21 @@ fn degrees(ui: &mut Ui, unit: Unit, c: &mut f32) -> bool {
 }
 
 fn range(ui: &mut Ui, doc: &mut Doc) {
+    let before = (doc.look.min, doc.look.max);
     let unit = doc.unit;
     let stats = &doc.image.stats;
     readouts(
         ui,
         &[
-            ("window low", unit.figure(doc.look.min), READOUT),
-            ("window high", unit.figure(doc.look.max), READOUT),
+            ("window low", unit.figure(doc.look.min), COLD),
+            ("window high", unit.figure(doc.look.max), HOT),
         ],
     );
     readouts(
         ui,
         &[
-            ("coldest", unit.figure(stats.min.celsius), TRACE),
-            ("hottest", unit.figure(stats.max.celsius), TRACE),
+            ("coldest", unit.figure(stats.min.celsius), COLD),
+            ("hottest", unit.figure(stats.max.celsius), HOT),
         ],
     );
     ui.horizontal(|ui| {
@@ -449,6 +1247,12 @@ fn range(ui: &mut Ui, doc: &mut Doc) {
             }
         }
     });
+    if before != (doc.look.min, doc.look.max) {
+        doc.default_range = false;
+        if let Some(video) = &mut doc.video {
+            video.auto_range = false;
+        }
+    }
 }
 
 fn display(ui: &mut Ui, doc: &mut Doc) {
@@ -456,10 +1260,6 @@ fn display(ui: &mut Ui, doc: &mut Doc) {
     ui.push_id("unit", |ui| {
         tabs(ui, &mut doc.unit, &[(Unit::Celsius, "°C"), (Unit::Fahrenheit, "°F")])
     });
-    Line::new().legend("scale").show(ui);
-    let names: Vec<(u32, String)> = (1..=6).map(|s| (s, format!("{s}x"))).collect();
-    let opts: Vec<(u32, &str)> = names.iter().map(|(s, n)| (*s, n.as_str())).collect();
-    ui.push_id("scale", |ui| tabs(ui, &mut doc.scale, &opts));
     row(ui, "labels", |ui| {
         ui.add(egui::Slider::new(&mut doc.label_size, 5.0..=30.0).step_by(1.0));
     });
@@ -549,7 +1349,8 @@ fn calibration(ui: &mut Ui, doc: &mut Doc) {
     row(ui, "distance", |ui| {
         ui.add(
             egui::DragValue::new(&mut p.distance)
-                .range(0.1..=100.0)
+                .range(0.0..=100.0)
+                .clamp_existing_to_range(false)
                 .speed(0.05)
                 .fixed_decimals(1)
                 .suffix(" m"),
@@ -621,6 +1422,9 @@ impl App {
     pub fn show(&mut self, ui: &mut Ui) {
         let ctx = ui.ctx().clone();
         self.poll_open(&ctx);
+        self.measure_input(&ctx);
+        self.playback(&ctx);
+        self.measure_tick(&ctx);
         egui::Panel::top("header")
             .frame(egui::Frame::NONE.fill(CHASSIS).inner_margin(egui::Margin {
                 left: 12,
@@ -643,19 +1447,25 @@ impl App {
                     });
                 });
         }
-        if self.doc.is_some() {
-            egui::Panel::left("controls")
+        if self.doc.as_ref().is_some_and(|d| d.video.is_some()) {
+            egui::Panel::bottom("video timeline")
+                .frame(egui::Frame::NONE.fill(CHASSIS).inner_margin(egui::Margin::symmetric(12, 8)))
+                .show(ui, |ui| self.timeline(ui));
+        }
+        egui::Panel::left("activity bar")
+            .resizable(false)
+            .exact_size(52.0)
+            .frame(egui::Frame::NONE.fill(CHASSIS))
+            .show(ui, |ui| self.activity_bar(ui));
+        if self.sidebar.is_some() {
+            egui::Panel::left("sidebar")
                 .resizable(true)
                 .default_size(290.0)
                 .min_size(250.0)
                 .frame(egui::Frame::NONE.fill(CHASSIS).inner_margin(egui::Margin::symmetric(10, 8)))
-                .show(ui, |ui| {
-                    egui::ScrollArea::vertical().show(ui, |ui| {
-                        if let Some(doc) = &mut self.doc {
-                            App::controls(ui, doc);
-                        }
-                    });
-                });
+                .show(ui, |ui| self.sidebar(ui));
+        }
+        if self.doc.is_some() {
             egui::Panel::right("readings")
                 .resizable(true)
                 .default_size(290.0)
@@ -682,7 +1492,34 @@ impl App {
 
 #[cfg(not(target_arch = "wasm32"))]
 pub fn run(file: Option<std::path::PathBuf>) -> eframe::Result<()> {
+    use std::sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    };
+    let started = Arc::new(AtomicBool::new(false));
+    match run_renderer(file.clone(), eframe::Renderer::Wgpu, started.clone()) {
+        Ok(()) => Ok(()),
+        Err(error) if !started.load(Ordering::Relaxed) => {
+            crate::startup::log(&format!("WGPU startup failed: {error}. Retrying with OpenGL."));
+            run_renderer(file, eframe::Renderer::Glow, started).map_err(|fallback| {
+                eframe::Error::AppCreation(Box::new(crate::Error::new(format!(
+                    "Graphics startup failed. WGPU: {error}. OpenGL fallback: {fallback}"
+                ))))
+            })
+        }
+        Err(error) => Err(error),
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn run_renderer(
+    file: Option<std::path::PathBuf>,
+    renderer: eframe::Renderer,
+    started: std::sync::Arc<std::sync::atomic::AtomicBool>,
+) -> eframe::Result<()> {
     let opts = eframe::NativeOptions {
+        renderer,
+        run_and_return: true,
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([1500.0, 950.0])
             .with_title("thermview"),
@@ -692,7 +1529,9 @@ pub fn run(file: Option<std::path::PathBuf>) -> eframe::Result<()> {
         "thermview",
         opts,
         Box::new(move |cc| {
+            started.store(true, std::sync::atomic::Ordering::Relaxed);
             let mut app = App::new(&cc.egui_ctx);
+            app.file_dialog.set_parent(cc);
             if let Some(f) = &file {
                 app.load(&cc.egui_ctx, host::read(f));
             }

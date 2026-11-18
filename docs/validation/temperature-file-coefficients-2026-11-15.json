@@ -1,0 +1,187 @@
+{
+  "method": "Updated ThermView outputs compared with saved unmodified Thermimage file-metadata reference rasters from the 2026-11-13 audit. The 20 extracted CSQ source frames are replayed in their original order as a smaller CSQ; original frame numbers are retained in case labels.",
+  "tolerance_c": 0.001,
+  "cases": [
+    {
+      "case": "CSQ frame 1",
+      "status": "PASS",
+      "pixels_compared": 76800,
+      "raw_count_mismatches": 0,
+      "max_abs_difference_c": 9.531364177917112e-07,
+      "mean_abs_difference_c": 3.067828237318197e-07
+    },
+    {
+      "case": "CSQ frame 2",
+      "status": "PASS",
+      "pixels_compared": 76800,
+      "raw_count_mismatches": 0,
+      "max_abs_difference_c": 9.535681968486642e-07,
+      "mean_abs_difference_c": 3.077327816592562e-07
+    },
+    {
+      "case": "CSQ frame 3",
+      "status": "PASS",
+      "pixels_compared": 76800,
+      "raw_count_mismatches": 0,
+      "max_abs_difference_c": 9.531364177917112e-07,
+      "mean_abs_difference_c": 3.0664492621161146e-07
+    },
+    {
+      "case": "CSQ frame 1519",
+      "status": "PASS",
+      "pixels_compared": 76800,
+      "raw_count_mismatches": 0,
+      "max_abs_difference_c": 1.8894512976430633e-06,
+      "mean_abs_difference_c": 3.2338722445371857e-07
+    },
+    {
+      "case": "CSQ frame 3037",
+      "status": "PASS",
+      "pixels_compared": 76800,
+      "raw_count_mismatches": 0,
+      "max_abs_difference_c": 1.8742506213698107e-06,
+      "mean_abs_difference_c": 3.1860070780859637e-07
+    },
+    {
+      "case": "CSQ frame 4555",
+      "status": "PASS",
+      "pixels_compared": 76800,
+      "raw_count_mismatches": 0,
+      "max_abs_difference_c": 1.8931561029944532e-06,
+      "mean_abs_difference_c": 3.284754552633727e-07
+    },
+    {
+      "case": "CSQ frame 5526",
+      "status": "PASS",
+      "pixels_compared": 76800,
+      "raw_count_mismatches": 0,
+      "max_abs_difference_c": 1.9006815961120083e-06,
+      "mean_abs_difference_c": 3.1166529515673505e-07
+    },
+    {
+      "case": "CSQ frame 5527",
+      "status": "DECODE_FAILED",
+      "error": "CSQ frame 8: raw data: JPEG-LS: Invalid JPEG-LS stream, the encoded bit stream contains a general structural problem"
+    },
+    {
+      "case": "CSQ frame 5528",
+      "status": "PASS",
+      "pixels_compared": 76800,
+      "raw_count_mismatches": 0,
+      "max_abs_difference_c": 1.8056695267887335e-06,
+      "mean_abs_difference_c": 3.1102899813950645e-07
+    },
+    {
+      "case": "CSQ frame 6074",
+      "status": "PASS",
+      "pixels_compared": 76800,
+      "raw_count_mismatches": 0,
+      "max_abs_difference_c": 1.9072314358936637e-06,
+      "mean_abs_difference_c": 3.240062885428765e-07
+    },
+    {
+      "case": "CSQ frame 7592",
+      "status": "PASS",
+      "pixels_compared": 76800,
+      "raw_count_mismatches": 0,
+      "max_abs_difference_c": 9.535681968486642e-07,
+      "mean_abs_difference_c": 3.1220028592679934e-07
+    },
+    {
+      "case": "CSQ frame 9110",
+      "status": "PASS",
+      "pixels_compared": 76800,
+      "raw_count_mismatches": 0,
+      "max_abs_difference_c": 1.75669030966219e-06,
+      "mean_abs_difference_c": 3.1445215771748005e-07
+    },
+    {
+      "case": "CSQ frame 10628",
+      "status": "PASS",
+      "pixels_compared": 76800,
+      "raw_count_mismatches": 0,
+      "max_abs_difference_c": 9.535681968486642e-07,
+      "mean_abs_difference_c": 3.1107431730334477e-07
+    },
+    {
+      "case": "CSQ frame 11147",
+      "status": "PASS",
+      "pixels_compared": 76800,
+      "raw_count_mismatches": 0,
+      "max_abs_difference_c": 9.531364177917112e-07,
+      "mean_abs_difference_c": 3.0810566151832917e-07
+    },
+    {
+      "case": "CSQ frame 11148",
+      "status": "PASS",
+      "pixels_compared": 76800,
+      "raw_count_mismatches": 0,
+      "max_abs_difference_c": 9.531364177917112e-07,
+      "mean_abs_difference_c": 3.064481253278508e-07
+    },
+    {
+      "case": "CSQ frame 11149",
+      "status": "PASS",
+      "pixels_compared": 76800,
+      "raw_count_mismatches": 0,
+      "max_abs_difference_c": 9.535681968486642e-07,
+      "mean_abs_difference_c": 3.0771267505458795e-07
+    },
+    {
+      "case": "CSQ frame 12147",
+      "status": "PASS",
+      "pixels_compared": 76800,
+      "raw_count_mismatches": 0,
+      "max_abs_difference_c": 9.531364177917112e-07,
+      "mean_abs_difference_c": 3.165008362980328e-07
+    },
+    {
+      "case": "CSQ frame 13665",
+      "status": "PASS",
+      "pixels_compared": 76800,
+      "raw_count_mismatches": 0,
+      "max_abs_difference_c": 9.535681968486642e-07,
+      "mean_abs_difference_c": 3.049679680427094e-07
+    },
+    {
+      "case": "CSQ frame 15183",
+      "status": "PASS",
+      "pixels_compared": 76800,
+      "raw_count_mismatches": 0,
+      "max_abs_difference_c": 1.8421954877112512e-06,
+      "mean_abs_difference_c": 3.304982822844443e-07
+    },
+    {
+      "case": "CSQ frame 16702",
+      "status": "PASS",
+      "pixels_compared": 76800,
+      "raw_count_mismatches": 0,
+      "max_abs_difference_c": 1.879366301693608e-06,
+      "mean_abs_difference_c": 3.293164523384083e-07
+    },
+    {
+      "case": "07_10_26_14_30_Back_Circle_Thermal_000000_radiometric.jpg",
+      "status": "PASS",
+      "pixels_compared": 76800,
+      "raw_count_mismatches": 0,
+      "max_abs_difference_c": 9.531364177917112e-07,
+      "mean_abs_difference_c": 3.067828237318197e-07
+    },
+    {
+      "case": "07_10_26_14_30_Back_Circle_Thermal_000001_radiometric.jpg",
+      "status": "PASS",
+      "pixels_compared": 76800,
+      "raw_count_mismatches": 0,
+      "max_abs_difference_c": 9.535681968486642e-07,
+      "mean_abs_difference_c": 3.077327816592562e-07
+    },
+    {
+      "case": "IR_2412.jpg",
+      "status": "PASS",
+      "pixels_compared": 307200,
+      "raw_count_mismatches": 0,
+      "max_abs_difference_c": 1.9049239270430007e-06,
+      "mean_abs_difference_c": 4.705712159400073e-07
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-flir-csq">
+    <comment>FLIR radiometric thermal video</comment>
+    <glob pattern="*.csq"/>
+  </mime-type>
+  <mime-type type="application/x-infiray-irg">
+    <comment>Infiray radiometric thermal image</comment>
+    <glob pattern="*.irg"/>
+  </mime-type>
+</mime-info>

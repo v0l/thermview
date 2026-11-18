@@ -1,4 +1,4 @@
-use crate::planck::{Conversion, Planck, tau};
+use crate::planck::{Conversion, Environment, Planck};
 use std::sync::Arc;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -8,6 +8,7 @@ pub enum Format {
     Dji,
     FlirAff,
     FlirJpeg,
+    FlirCsq,
 }
 
 impl Format {
@@ -18,6 +19,7 @@ impl Format {
             Format::Dji => "DJI R-JPEG",
             Format::FlirAff => "FLIR AFF",
             Format::FlirJpeg => "FLIR R-JPEG",
+            Format::FlirCsq => "FLIR CSQ",
         }
     }
 }
@@ -112,6 +114,7 @@ impl Default for Params {
 pub struct Radiometry {
     pub counts: Vec<u16>,
     pub planck: Planck,
+    pub environment: Environment,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -195,7 +198,7 @@ impl ThermalImage {
 
     pub fn recompute(&self, params: Params) -> ThermalImage {
         let Some(r) = &self.radiometry else { return self.clone() };
-        let conv = Conversion::new(&params, &r.planck);
+        let conv = Conversion::with_environment(&params, &r.planck, &r.environment);
         let celsius: Vec<f32> = r.counts.iter().map(|&c| conv.celsius(c as f64) as f32).collect();
         ThermalImage {
             format: self.format,
@@ -204,7 +207,7 @@ impl ThermalImage {
             stats: Stats::of(&celsius, self.width),
             celsius,
             params,
-            atm_trans: tau(params.distance, params.air, params.humidity),
+            atm_trans: r.environment.tau(params.distance, params.air, params.humidity),
             radiometry: self.radiometry.clone(),
             camera: self.camera.clone(),
         }
