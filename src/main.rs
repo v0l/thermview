@@ -148,6 +148,11 @@ fn render(
 }
 
 fn main() -> ExitCode {
+    // SAFETY: first action in main, before any application threads or GTK startup.
+    #[cfg(target_os = "linux")]
+    unsafe {
+        thermview::startup::prepare_system_gtk();
+    }
     #[cfg(windows)]
     let has_output = unsafe {
         use windows_sys::Win32::System::Console::{

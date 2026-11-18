@@ -46,6 +46,13 @@ jobs:
           test "$(jq -r .status source-run.json)" = completed
           gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}/jobs?per_page=100" > source-jobs.json
           jq -e '[.jobs[] | select(.name | startswith("build ("))] | length == 5 and all(.[]; .conclusion == "success")' source-jobs.json
+          case "${RELEASE_TAG#v}" in
+            0.1.*|0.2.0|0.2.1) echo 'CLEAN_RELEASE_ASSETS=false' >> "$GITHUB_ENV" ;;
+            *)
+              jq -e '[.jobs[] | select(.name == "arch")] | length == 1 and all(.[]; .conclusion == "success")' source-jobs.json
+              echo 'CLEAN_RELEASE_ASSETS=true' >> "$GITHUB_ENV"
+              ;;
+          esac
       - name: Download completed platform artifacts
         run: gh run download "$SOURCE_RUN_ID" --repo "$GITHUB_REPOSITORY" --pattern 'thermview-*' --dir artifacts
       - name: Collect artifacts and release notes from the tagged source
@@ -54,8 +61,11 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
+          import os
           import shutil
           platforms = ['x86_64-unknown-linux-gnu', 'aarch64-unknown-linux-gnu', 'x86_64-pc-windows-msvc', 'aarch64-apple-darwin', 'x86_64-apple-darwin']
+          if os.environ['CLEAN_RELEASE_ASSETS'] == 'true':
+              platforms.append('arch-x86_64')
           output = Path('dist')
           output.mkdir()
           for platform in platforms:
@@ -73,4 +83,10 @@ jobs:
           test -s notes.md
           (cd dist && sha256sum --check ./*.sha256)
       - name: Create or update release and upload artifacts
-        run: bash packaging/publish-release.sh "$RELEASE_TAG" dist notes.md
+        run: |
+          if [ "$CLEAN_RELEASE_ASSETS" = true ]; then
+            python3 packaging/prepare-release.py --version "${RELEASE_TAG#v}" --repo "$GITHUB_REPOSITORY" --input dist --output release-assets --notes notes.md
+            bash packaging/publish-release.sh "$RELEASE_TAG" release-assets notes.md
+          else
+            bash packaging/publish-release.sh "$RELEASE_TAG" dist notes.md
+          fi

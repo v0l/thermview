@@ -35,24 +35,11 @@ jobs:
           key: ${{ matrix.target }}
       - name: Linux build and packaging dependencies
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y cmake g++ pkg-config libwayland-dev libxkbcommon-dev dpkg-dev python3
+        run: sudo apt-get update && sudo apt-get install -y cmake g++ pkg-config libwayland-dev libxkbcommon-dev libgtk-3-dev dpkg-dev python3
+      - name: Release packaging tests
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        run: python3 -m unittest discover -s tests -p 'test_release_packaging.py' -v
       - run: cargo build --release --locked -p thermview --target ${{ matrix.target }}
-      - name: package
-        shell: bash
-        run: |
-          name=thermview-${{ matrix.target }}
-          mkdir -p "dist/$name"
-          cp README.md LICENSE "dist/$name/"
-          cd dist
-          if [[ "${{ matrix.target }}" == *windows* ]]; then
-            cp "../target/${{ matrix.target }}/release/thermview.exe" "$name/"
-            7z a "$name.zip" "$name" >/dev/null
-            sha256sum "$name.zip" > "$name.zip.sha256"
-          else
-            cp "../target/${{ matrix.target }}/release/thermview" "$name/"
-            tar czf "$name.tar.gz" "$name"
-            shasum -a 256 "$name.tar.gz" > "$name.tar.gz.sha256"
-          fi
       - name: Debian package
         if: runner.os == 'Linux'
         shell: bash
@@ -64,6 +51,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p dist
           version=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "thermview") | .version')
           app="dmg/ThermView.app"
           mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
@@ -83,6 +71,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p dist
           version=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "thermview") | .version')
           name=thermview-${{ matrix.target }}
           wix build -arch x64 -pdbtype none \
@@ -95,15 +84,31 @@ jobs:
           name: thermview-${{ matrix.target }}
           if-no-files-found: error
           path: |
-            dist/*.tar.gz
-            dist/*.zip
             dist/*.dmg
             dist/*.deb
             dist/*.msi
             dist/*.sha256
 
+  arch:
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    steps:
+      - name: Arch build dependencies
+        run: pacman -Syu --noconfirm --needed git rust cmake pkgconf python gtk3 wayland libxkbcommon libxkbcommon-x11 libx11 libxcb libxcursor libxi libxrandr libglvnd vulkan-icd-loader hicolor-icon-theme shared-mime-info desktop-file-utils
+      - uses: actions/checkout@v5
+      - name: Build and test native Arch package as an unprivileged user
+        run: |
+          useradd --create-home builder
+          chown -R builder:builder "$GITHUB_WORKSPACE"
+          runuser -u builder -- bash packaging/arch/build-package.sh
+      - uses: actions/upload-artifact@v6
+        with:
+          name: thermview-arch-x86_64
+          path: dist/*.pkg.tar.zst
+          if-no-files-found: error
+
   release:
-    needs: build
+    needs: [build, arch]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
@@ -121,4 +126,6 @@ jobs:
       - name: Create or update release and upload artifacts
         env:
           GH_TOKEN: ${{ github.token }}
-        run: bash packaging/publish-release.sh "${GITHUB_REF_NAME}" dist notes.md
+        run: |
+          python3 packaging/prepare-release.py --version "${GITHUB_REF_NAME#v}" --repo "$GITHUB_REPOSITORY" --input dist --output release-assets --notes notes.md
+          bash packaging/publish-release.sh "${GITHUB_REF_NAME}" release-assets notes.md

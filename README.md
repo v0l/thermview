@@ -79,12 +79,18 @@ Download the appropriate file from **[this fork's GitHub Releases](https://githu
 
 | Computer | Installer produced by the release workflow |
 |---|---|
-| Debian/Ubuntu, Intel or AMD 64-bit | `thermview_VERSION_amd64.deb` |
-| Debian/Ubuntu, ARM64 | `thermview_VERSION_arm64.deb` |
-| Arch Linux and Arch-based distributions | Use the source-install instructions below; `.deb` is not an Arch package |
-| Windows, Intel or AMD 64-bit | `thermview-x86_64-pc-windows-msvc.msi` |
-| macOS, Apple silicon (M-series) | `thermview-aarch64-apple-darwin.dmg` |
-| macOS, Intel | `thermview-x86_64-apple-darwin.dmg` |
+| macOS, Apple silicon (M-series) | `ThermView-VERSION-macOS-Apple-Silicon.dmg` |
+| macOS, Intel | `ThermView-VERSION-macOS-Intel.dmg` |
+| Windows 11, Intel or AMD 64-bit | `ThermView-VERSION-Windows-11-x64.msi` |
+| Debian/Ubuntu, Intel or AMD 64-bit | `ThermView-VERSION-Linux-Debian-Ubuntu-x64.deb` |
+| Debian/Ubuntu, ARM64 | `ThermView-VERSION-Linux-Debian-Ubuntu-ARM64.deb` |
+| Arch Linux, Intel or AMD 64-bit | `ThermView-VERSION-Linux-Arch-x64.pkg.tar.zst` |
+| Source code | GitHub's automatic **Source code** downloads; these are not installers |
+
+These readable names start with **0.2.2**. Older releases use Rust target names.
+Each release has a download table; SHA-256 hashes are in **Verify downloads** in
+the release notes. Duplicate portable archives and separate checksum assets are
+no longer published. GitHub adds its source ZIP and tar.gz automatically.
 
 **Installer availability:** merging changes into `master` does not publish downloads. The [release workflow](.github/workflows/release.yml) builds these packages when a version tag such as `v0.1.8` is pushed. A manual workflow run produces downloadable Actions artifacts, but does not publish a GitHub Release. If the release you need is not listed, use the source-install instructions below. Linux has been built and tested in this workspace. A successful Windows build confirms compilation and installer creation, but running the app on a Windows machine still needs verification; macOS needs a completed native build and runtime verification.
 
@@ -93,10 +99,10 @@ Download the appropriate file from **[this fork's GitHub Releases](https://githu
 From the folder containing the downloaded `.deb`, run:
 
 ```bash
-sudo apt install ./thermview_0.1.11-1_amd64.deb
+sudo apt install ./ThermView-0.2.2-Linux-Debian-Ubuntu-x64.deb
 ```
 
-For ARM64, use the corresponding `_arm64.deb` file. This installs the `thermview` command, an app-menu entry, an icon and CSQ/IRG file associations. Open **ThermView** from the app menu or run:
+For ARM64, use the corresponding `-ARM64.deb` file. This installs the `thermview` command, an app-menu entry, an icon and CSQ/IRG file associations. Open **ThermView** from the app menu or run:
 
 ```bash
 thermview
@@ -111,26 +117,43 @@ Packages built locally on a newer distribution may require newer system librarie
 
 ### Arch Linux / Arch-based distributions
 
-**The `.deb` is for Debian-based distributions, not Arch.** Arch uses `pacman` and a different package format and dependency names. This repository does not currently publish an Arch package or AUR recipe. Use the source-install commands below.
+From version 0.2.2, the release workflow builds a native Arch Linux x86-64
+package. Download the **Linux-Arch-x64.pkg.tar.zst** asset and install it with:
+
+```bash
+sudo pacman -U ./ThermView-0.2.2-Linux-Arch-x64.pkg.tar.zst
+```
+
+This installs the application-menu entry and `/usr/bin/thermview`. Use the same
+command with a newer package to upgrade; remove it with `sudo pacman -R thermview`.
+The package is built and tested in an Arch container before publication. It is
+not an AUR entry, and the Debian `.deb` is not an Arch package. Arch derivatives
+must have compatible, up-to-date repositories; they are not separately tested.
+
+For an older release or to build from source, use the following instructions.
 
 On an up-to-date Arch installation, install the build tools and desktop libraries:
 
 ```bash
 sudo pacman -Syu --needed base-devel rust cmake git pkgconf \
   wayland libxkbcommon libxkbcommon-x11 libx11 libxcb libxcursor libxi libxrandr \
-  libglvnd vulkan-icd-loader zenity
+  libglvnd vulkan-icd-loader gtk3
 ```
 
 Then build and install this fork's released version as your normal user:
 
 ```bash
-cargo install --git https://github.com/alfiethology/thermview.git --tag v0.1.8 --locked thermview
+cargo install --git https://github.com/alfiethology/thermview.git --tag v0.2.2 --locked thermview
 export PATH="$HOME/.cargo/bin:$PATH"
 thermview --version
 thermview
 ```
 
-Linux native file dialogs use the desktop's XDG portal (GNOME/KDE/GTK) with Zenity as a fallback.
+Linux builds from this checkout use GTK's native file and folder pickers directly,
+so Open does not wait for the XDG desktop portal service to respond. GTK 3 is
+required; the Debian package records the GTK runtime dependency automatically.
+Windows and macOS use their own native pickers. Older releases through 0.2.1 use
+the XDG portal on Linux, with Zenity as a fallback.
 
 The first build can take several minutes. The executable is installed in `~/.cargo/bin`, rather than being managed by `pacman`. Keep that directory on your shell's `PATH` for new terminals. This source install does not create an app-menu shortcut. To update, replace the version tag with a newer release and add `--force`; to remove it, run `cargo uninstall thermview`. These commands have not been run in a native Arch environment here.
 
@@ -139,7 +162,7 @@ See the [pacman manual](https://man.archlinux.org/man/pacman.8.en) for Arch's pa
 ### Windows
 
 1. Open [this fork's Releases](https://github.com/alfiethology/thermview/releases) and expand **Assets** for the version you want.
-2. Download `thermview-x86_64-pc-windows-msvc.msi` (not **Source code**).
+2. Download `ThermView-0.2.2-Windows-11-x64.msi` (not **Source code**). Older releases use `thermview-x86_64-pc-windows-msvc.msi`.
 3. Double-click it and follow the installer, approving the administrator prompt when requested.
 4. Open **ThermView** from the Start menu.
 
@@ -155,7 +178,7 @@ For the initial `v0.1.8` build, the Windows installer was successfully created i
 Alternatively, from PowerShell in the download folder, open the installer with:
 
 ```powershell
-msiexec.exe /i ".\thermview-x86_64-pc-windows-msvc.msi"
+msiexec.exe /i ".\ThermView-0.2.2-Windows-11-x64.msi"
 ```
 
 **Opening files:** use **Open** (Ctrl+O) for the standard Windows file dialog, or drag a file into ThermView. **Open folder** in Explorer uses Windows' folder picker. The MSI registers `.csq`, `.irg`, `.seq`, `.img`, `.jpg` and `.jpeg` as supported file types. To double-click-open a file, right-click it → **Open with → Choose another app → ThermView → Always** (wording varies by Windows version). This is a per-file-type Windows preference; installing ThermView does not replace your existing photo viewer or other default apps. Portable copies do not install these associations.
@@ -171,13 +194,13 @@ The MSI installs to `C:\Program Files\ThermView` and creates a Start-menu shortc
 & "$env:ProgramFiles\ThermView\thermview.exe" --version
 ```
 
-Run the newer MSI to upgrade the existing MSI installation. Portable `.zip` downloads are also produced; use either the MSI installation or a portable copy to avoid launching an older copy accidentally. Remove the MSI installation through **Settings → Apps → Installed apps**.
+Run the newer MSI to upgrade the existing MSI installation. Older releases also offered portable `.zip` copies; avoid launching an older portable copy after installing an update. Remove the MSI installation through **Settings → Apps → Installed apps**.
 
 The installer command uses Windows Installer's documented [`msiexec /i` option](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/msiexec).
 
 ### macOS
 
-1. Download the `.dmg` matching your Mac: `aarch64-apple-darwin` for Apple silicon or `x86_64-apple-darwin` for Intel. **About This Mac** shows which processor you have.
+1. Download the `.dmg` labelled **macOS-Apple-Silicon** or **macOS-Intel** to match your Mac. Older releases use `aarch64-apple-darwin` and `x86_64-apple-darwin` respectively. **About This Mac** shows which processor you have.
 2. Open the `.dmg` and drag **ThermView.app** onto **Applications**.
 3. Eject the disk image and launch **ThermView** from Applications.
 
@@ -201,7 +224,7 @@ The workflow currently uses ad-hoc signing rather than Apple Developer ID signin
 
 Install **Rust 1.95 or newer**, **CMake**, and a **C++ compiler** first. The C++ tools build the bundled CharLS JPEG-LS decoder used for CSQ files.
 
-- **Debian/Ubuntu:** install the native build dependencies with `sudo apt install build-essential cmake pkg-config libwayland-dev libxkbcommon-dev`.
+- **Debian/Ubuntu:** install the native build dependencies with `sudo apt install build-essential cmake pkg-config libwayland-dev libxkbcommon-dev libgtk-3-dev`.
 - **Arch Linux:** use the `pacman` dependencies and source-install commands in the Arch section above.
 - **Windows:** install Visual Studio Build Tools with **Desktop development with C++** and a Windows SDK, plus CMake. Use the Rust MSVC toolchain and a terminal where the C++ tools and CMake are available.
 - **macOS:** install Xcode Command Line Tools (`xcode-select --install`) and CMake.
@@ -237,7 +260,7 @@ thermview render photo.jpg -o out.png --palette iron --scale 4 --range 20:40 --p
 On Debian/Ubuntu, install Rust and the packaging dependencies, then run the packaging script from a checkout of this fork:
 
 ```bash
-sudo apt install build-essential cmake pkg-config libwayland-dev libxkbcommon-dev dpkg-dev python3
+sudo apt install build-essential cmake pkg-config libwayland-dev libxkbcommon-dev libgtk-3-dev dpkg-dev python3
 packaging/linux/build-deb.sh
 ```
 

@@ -6,6 +6,18 @@ All notable changes to thermview are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-11-18
+
+### Added
+- Native Arch Linux x86-64 package build, installable with pacman.
+
+### Changed
+- Publish only clearly named platform installers in Releases, with a download table and SHA-256 hashes in collapsible release notes instead of duplicate portable archives and separate checksum assets. GitHub still provides its automatic source archives.
+
+### Fixed
+- Linux file and folder pickers use GTK directly rather than waiting for the XDG desktop portal, avoiding delays caused by an unhealthy portal service. Update Linux build and package dependencies for GTK 3; Windows/macOS retain their native picker backends.
+- System Linux builds ignore GTK module paths inherited from an unrelated Snap application such as VS Code, preventing incompatible editor-bundled GTK modules from breaking the picker.
+
 ## [0.2.1] - 2026-11-16
 
 ### Added
